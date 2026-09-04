@@ -2,19 +2,27 @@
 
 import { useEffect, useState } from 'react';
 import { useWallet } from '@/lib/useWallet';
-import { WalletButton } from '@/components/WalletButton'; // Adjust the import path if needed
+import { WalletButton } from '@/components/WalletButton';
 import * as gd from '@/lib/genDungeonClient';
-import { QuestView, PlayerStatsView } from '@/lib/types';
+import { QuestView, PlayerStatsView, QuestStatus } from '@/lib/types';
 
 export default function GenDungeonPage() {
   const { address } = useWallet();
   const [loading, setLoading] = useState(false);
   const [activeQuest, setActiveQuest] = useState<QuestView | null>(null);
   const [stats, setStats] = useState<PlayerStatsView | null>(null);
+  const [entryFee, setEntryFee] = useState<bigint>(1000000000000000000n);
   const [actionText, setActionText] = useState('');
 
-  // Load player data when wallet connects
-  const loadPlayerData = async () => {
+  // Load configuration and player data when wallet connects
+  const loadInitialData = async () => {
+    try {
+      const config = await gd.getConfig();
+      setEntryFee(config.entryFee);
+    } catch (error) {
+      console.error("Error loading config:", error);
+    }
+
     if (!address) return;
     try {
       const pStats = await gd.getPlayerStats(address);
@@ -33,20 +41,16 @@ export default function GenDungeonPage() {
   };
 
   useEffect(() => {
-    loadPlayerData();
+    loadInitialData();
   }, [address]);
 
-  // --------------------------------------------------------
   // Game Actions
-  // --------------------------------------------------------
   const handleStartQuest = async () => {
     if (!address) return;
     setLoading(true);
     try {
-      // Entry fee: 1 GEN (18 decimals)
-      const entryFee = BigInt("1000000000000000000");
       await gd.startQuest(address, entryFee);
-      await loadPlayerData();
+      await loadInitialData();
     } catch (err: any) {
       alert("Error starting quest: " + err.message);
     }
@@ -61,7 +65,7 @@ export default function GenDungeonPage() {
     try {
       await gd.submitAction(address, activeQuest.questId, actionText);
       setActionText('');
-      await loadPlayerData();
+      await loadInitialData();
     } catch (err: any) {
       alert("Error submitting action: " + err.message);
     }
@@ -73,7 +77,7 @@ export default function GenDungeonPage() {
     setLoading(true);
     try {
       await gd.resolveQuest(address, activeQuest.questId);
-      await loadPlayerData();
+      await loadInitialData();
     } catch (err: any) {
       alert("Error resolving quest: " + err.message);
     }
@@ -85,7 +89,7 @@ export default function GenDungeonPage() {
     setLoading(true);
     try {
       await gd.claimReward(address, activeQuest.questId);
-      await loadPlayerData();
+      await loadInitialData();
     } catch (err: any) {
       alert("Error claiming reward: " + err.message);
     }
@@ -97,22 +101,19 @@ export default function GenDungeonPage() {
     setLoading(true);
     try {
       await gd.surrenderQuest(address);
-      await loadPlayerData();
+      await loadInitialData();
     } catch (err: any) {
       alert("Error surrendering: " + err.message);
     }
     setLoading(false);
   };
 
-  // --------------------------------------------------------
-  // Render Quest Area
-  // --------------------------------------------------------
   const renderQuestArea = () => {
     if (!activeQuest) {
       return (
         <div className="text-center p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
           <h2 className="text-2xl text-amber-500 font-bold mb-4">Enter the Dungeon</h2>
-          <p className="text-slate-300 mb-6">Ready to face a new AI-generated challenge? (Entry Fee: 1 GEN)</p>
+          <p className="text-slate-300 mb-6">Ready to face a new AI-generated challenge? (Entry Fee: {Number(entryFee) / 1e18} GEN)</p>
           <button 
             onClick={handleStartQuest} disabled={loading}
             className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-slate-900 font-bold rounded-lg transition-colors disabled:opacity-50"
@@ -136,8 +137,7 @@ export default function GenDungeonPage() {
           <p className="text-slate-200 leading-relaxed italic">"{activeQuest.scenario}"</p>
         </div>
 
-        {/* Status 0: Active / Awaiting Action */}
-        {activeQuest.status === 0 && (
+        {activeQuest.status === QuestStatus.ACTIVE && (
           <div className="space-y-4">
             <textarea 
               value={actionText}
@@ -156,8 +156,7 @@ export default function GenDungeonPage() {
           </div>
         )}
 
-        {/* Status 1: Submitted / Awaiting Resolution */}
-        {activeQuest.status === 1 && (
+        {activeQuest.status === QuestStatus.SUBMITTED && (
           <div className="text-center space-y-4">
             <div className="p-4 bg-slate-900 border border-slate-700 rounded-lg text-left">
               <span className="text-slate-400 text-sm">Your Action:</span>
@@ -169,8 +168,7 @@ export default function GenDungeonPage() {
           </div>
         )}
 
-        {/* Status 2: Success! */}
-        {activeQuest.status === 2 && (
+        {activeQuest.status === QuestStatus.SUCCESS && (
           <div className="space-y-4 text-center">
             <div className="p-4 bg-emerald-900/30 border border-emerald-700/50 rounded-lg">
               <h4 className="text-emerald-400 font-bold mb-2">Victory! (Creativity Score: {activeQuest.creativityScore})</h4>
@@ -182,14 +180,13 @@ export default function GenDungeonPage() {
           </div>
         )}
 
-        {/* Status 3: Failed */}
-        {activeQuest.status === 3 && (
+        {activeQuest.status === QuestStatus.FAILED && (
           <div className="space-y-4 text-center">
             <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg">
               <h4 className="text-red-400 font-bold mb-2">Defeat! (Creativity Score: {activeQuest.creativityScore})</h4>
               <p className="text-slate-300 italic">{activeQuest.narrativeOutcome}</p>
             </div>
-            <button onClick={() => loadPlayerData()} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">
+            <button onClick={() => loadInitialData()} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">
               Clear & Restart
             </button>
           </div>
@@ -198,14 +195,9 @@ export default function GenDungeonPage() {
     );
   };
 
-  // --------------------------------------------------------
-  // Main UI
-  // --------------------------------------------------------
   return (
     <main className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8 font-sans selection:bg-amber-500/30">
       <div className="max-w-5xl mx-auto space-y-8">
-        
-        {/* Header */}
         <header className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl">
           <div>
             <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-600">
@@ -216,15 +208,12 @@ export default function GenDungeonPage() {
           <WalletButton />
         </header>
 
-        {/* Main Content (Requires Wallet Connection) */}
         {!address ? (
           <div className="text-center py-20">
             <h2 className="text-2xl text-slate-500">Connect your wallet to begin your adventure.</h2>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Left Column: Player Stats */}
             <div className="lg:col-span-1 space-y-4">
               <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl">
                 <h3 className="text-lg font-bold text-amber-500 border-b border-slate-700 pb-2 mb-4">Adventurer Stats</h3>
@@ -244,11 +233,9 @@ export default function GenDungeonPage() {
               </div>
             </div>
 
-            {/* Right Column: Dungeon Interface */}
             <div className="lg:col-span-2">
               {renderQuestArea()}
             </div>
-            
           </div>
         )}
       </div>
