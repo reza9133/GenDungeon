@@ -6,7 +6,7 @@ export function toBigInt(value: unknown): bigint {
   if (typeof value === 'bigint') return value;
   if (typeof value === 'number') return BigInt(value);
   if (typeof value === 'string' && value.length) return BigInt(value);
-  return 0n;
+  return BigInt(0);
 }
 
 export function toNumber(value: unknown): number {
