@@ -1,8 +1,87 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --void: #0a0910;
+  --stone: #16131d;
+  --stone-2: #1e1a27;
+  --stone-border: #332c3f;
+  --parchment: #e9dfc9;
+  --parchment-dim: #a89f9a;
+  --ember: #d9903f;
+  --ember-bright: #f0ac5b;
+  --blood: #a8433f;
+  --arcane: #8172e0;
+  --verdant: #4f9c72;
+}
+
+* {
+  scrollbar-color: var(--stone-border) var(--stone);
+}
+
 body {
-  background-color: #020617;
-  color: #e2e8f0;
+  background-color: var(--void);
+  color: var(--parchment);
+  background-image:
+    radial-gradient(ellipse 80% 60% at 50% -10%, rgba(217, 144, 63, 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 100% 100%, rgba(129, 114, 224, 0.07), transparent 60%),
+    repeating-linear-gradient(0deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 3px);
+  background-attachment: fixed;
+}
+
+.font-display {
+  font-family: 'Cinzel', serif;
+  letter-spacing: 0.01em;
+}
+
+/* Torchlight breathing glow — one deliberate ambient motion, used sparingly */
+@keyframes torch-breathe {
+  0%, 100% { opacity: 0.55; filter: blur(18px); }
+  50% { opacity: 0.9; filter: blur(22px); }
+}
+.torch-glow {
+  position: relative;
+}
+.torch-glow::before {
+  content: '';
+  position: absolute;
+  inset: -6px;
+  background: radial-gradient(circle, rgba(240, 172, 91, 0.55), transparent 70%);
+  animation: torch-breathe 3.4s ease-in-out infinite;
+  z-index: -1;
+  border-radius: inherit;
+}
+
+/* Beveled stone panel — used for structural chrome (header, stats tablet) */
+.panel-stone {
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.03), transparent 40%),
+    var(--stone);
+  border: 1px solid var(--stone-border);
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04) inset, 0 12px 30px -12px rgba(0,0,0,0.6);
+}
+
+/* Scroll panel — the quest card reads as an unrolled scroll, not another rounded card */
+.panel-scroll {
+  background: linear-gradient(180deg, var(--stone-2), var(--stone));
+  border: 1px solid var(--stone-border);
+  border-radius: 4px 4px 18px 18px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset, 0 20px 40px -16px rgba(0,0,0,0.7);
+}
+.panel-scroll::before {
+  content: '';
+  display: block;
+  height: 10px;
+  margin: -1px -1px 0 -1px;
+  background: linear-gradient(90deg, var(--stone-border), var(--ember) 20%, var(--stone-border) 40%, var(--stone-border) 60%, var(--ember) 80%, var(--stone-border));
+  opacity: 0.5;
+  border-radius: 4px 4px 0 0;
+}
+
+.divider-rune {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--stone-border) 15%, var(--stone-border) 85%, transparent);
 }
