@@ -60,7 +60,7 @@ export default function GenDungeonPage() {
   const handleSubmitAction = async () => {
     if (!address || !activeQuest) return;
     if (!actionText.trim()) return alert("Please write your action first!");
-    
+
     setLoading(true);
     try {
       await gd.submitAction(address, activeQuest.questId, actionText);
@@ -111,82 +111,114 @@ export default function GenDungeonPage() {
   const renderQuestArea = () => {
     if (!activeQuest) {
       return (
-        <div className="text-center p-8 bg-slate-800/50 border border-slate-700 rounded-xl">
-          <h2 className="text-2xl text-amber-500 font-bold mb-4">Enter the Dungeon</h2>
-          <p className="text-slate-300 mb-6">Ready to face a new AI-generated challenge? (Entry Fee: {Number(entryFee) / 1e18} GEN)</p>
-          <button 
-            onClick={handleStartQuest} disabled={loading}
-            className="px-6 py-3 bg-amber-600 hover:bg-amber-500 text-slate-900 font-bold rounded-lg transition-colors disabled:opacity-50"
-          >
-            {loading ? "Summoning scenario..." : "Start Quest"}
-          </button>
+        <div className="panel-scroll text-center px-8 py-12">
+          <p className="font-display text-xs tracking-[0.25em] text-[var(--ember)] mb-3">THE THRESHOLD AWAITS</p>
+          <h2 className="font-display text-2xl md:text-3xl text-[var(--parchment)] mb-4">Enter the Dungeon</h2>
+          <p className="text-[var(--parchment-dim)] mb-8 max-w-md mx-auto leading-relaxed">
+            A new AI-generated scenario will be woven the moment you cross in. Entry costs{' '}
+            <span className="text-[var(--ember-bright)] font-semibold">{Number(entryFee) / 1e18} GEN</span>.
+          </p>
+          <div className="inline-block torch-glow">
+            <button
+              onClick={handleStartQuest}
+              disabled={loading}
+              className="relative px-8 py-3 bg-gradient-to-b from-[var(--ember-bright)] to-[var(--ember)] text-[#241505] font-display font-semibold tracking-wide rounded-sm hover:brightness-110 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Summoning scenario…' : 'Start Quest'}
+            </button>
+          </div>
         </div>
       );
     }
 
     return (
-      <div className="p-6 bg-slate-800/80 border border-amber-900/50 rounded-xl shadow-2xl">
-        <div className="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
-          <h3 className="text-xl text-amber-500 font-bold">Quest #{activeQuest.questId}</h3>
-          <span className="px-3 py-1 bg-slate-900 rounded-full text-xs text-slate-300 border border-slate-700 uppercase">
-            Status: {activeQuest.statusLabel}
+      <div className="panel-scroll p-6 md:p-7">
+        <div className="flex justify-between items-center mb-5 pb-4 divider-rune">
+          <h3 className="font-display text-lg text-[var(--parchment)]">Quest No. {activeQuest.questId}</h3>
+          <span className="px-3 py-1 bg-[var(--void)] rounded-sm text-[11px] tracking-wider text-[var(--parchment-dim)] border border-[var(--stone-border)]">
+            {activeQuest.statusLabel}
           </span>
         </div>
 
-        <div className="mb-6 p-4 bg-slate-900 rounded-lg border border-slate-700">
-          <p className="text-slate-200 leading-relaxed italic">"{activeQuest.scenario}"</p>
+        <div className="mb-7 pl-5 border-l-2 border-[var(--stone-border)]">
+          <p className="text-[var(--parchment)] leading-relaxed italic">{activeQuest.scenario}</p>
         </div>
 
         {activeQuest.status === QuestStatus.ACTIVE && (
           <div className="space-y-4">
-            <textarea 
+            <textarea
               value={actionText}
               onChange={(e) => setActionText(e.target.value)}
-              placeholder="How do you overcome this obstacle? (Describe your action)..."
-              className="w-full p-4 bg-slate-900 border border-amber-700/50 rounded-lg text-slate-200 focus:outline-none focus:border-amber-500 min-h-[120px]"
+              placeholder="How do you overcome this obstacle? Describe your action…"
+              className="w-full p-4 bg-[var(--void)] border border-[var(--stone-border)] rounded-sm text-[var(--parchment)] placeholder:text-[var(--parchment-dim)]/60 focus:outline-none focus:border-[var(--ember)] min-h-[120px] transition-colors"
             />
-            <div className="flex justify-between items-center">
-              <button onClick={handleSurrender} disabled={loading} className="px-4 py-2 text-red-400 hover:text-red-300 transition-colors text-sm">
-                Surrender (Forfeit Fee)
+            <div className="flex justify-between items-center pt-1">
+              <button
+                onClick={handleSurrender}
+                disabled={loading}
+                className="text-[var(--blood)] hover:text-[#c65c57] transition-colors text-sm"
+              >
+                Surrender (forfeit fee)
               </button>
-              <button onClick={handleSubmitAction} disabled={loading || !actionText} className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50">
-                {loading ? "Submitting..." : "Submit Action"}
+              <button
+                onClick={handleSubmitAction}
+                disabled={loading || !actionText}
+                className="px-6 py-2.5 bg-[var(--verdant)] hover:brightness-110 text-[#0c1a12] font-display font-semibold rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'Submitting…' : 'Submit Action'}
               </button>
             </div>
           </div>
         )}
 
         {activeQuest.status === QuestStatus.SUBMITTED && (
-          <div className="text-center space-y-4">
-            <div className="p-4 bg-slate-900 border border-slate-700 rounded-lg text-left">
-              <span className="text-slate-400 text-sm">Your Action:</span>
-              <p className="text-slate-200 mt-1">{activeQuest.action}</p>
+          <div className="text-center space-y-5">
+            <div className="p-4 bg-[var(--void)] border border-[var(--stone-border)] rounded-sm text-left">
+              <span className="text-[var(--parchment-dim)] text-xs tracking-wide">YOUR ACTION</span>
+              <p className="text-[var(--parchment)] mt-2 leading-relaxed">{activeQuest.action}</p>
             </div>
-            <button onClick={handleResolveQuest} disabled={loading} className="w-full px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-lg transition-colors disabled:opacity-50">
-              {loading ? "AI is judging your fate..." : "Resolve Quest"}
+            <button
+              onClick={handleResolveQuest}
+              disabled={loading}
+              className="w-full px-6 py-3 bg-[var(--arcane)] hover:brightness-110 text-[#171233] font-display font-semibold rounded-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'The validators are judging your fate…' : 'Resolve Quest'}
             </button>
           </div>
         )}
 
         {activeQuest.status === QuestStatus.SUCCESS && (
           <div className="space-y-4 text-center">
-            <div className="p-4 bg-emerald-900/30 border border-emerald-700/50 rounded-lg">
-              <h4 className="text-emerald-400 font-bold mb-2">Victory! (Creativity Score: {activeQuest.creativityScore})</h4>
-              <p className="text-slate-300 italic">{activeQuest.narrativeOutcome}</p>
+            <div className="p-5 bg-[var(--verdant)]/10 border border-[var(--verdant)]/40 rounded-sm">
+              <h4 className="font-display text-[var(--verdant)] mb-2">
+                Victory <span className="text-[var(--parchment-dim)] font-sans text-sm font-normal">— Creativity {activeQuest.creativityScore}</span>
+              </h4>
+              <p className="text-[var(--parchment-dim)] italic leading-relaxed">{activeQuest.narrativeOutcome}</p>
             </div>
-            <button onClick={handleClaimReward} disabled={loading} className="w-full px-6 py-3 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold rounded-lg transition-colors shadow-[0_0_15px_rgba(245,158,11,0.3)] disabled:opacity-50">
-              {loading ? "Claiming..." : `Claim Reward (${Number(activeQuest.reward) / 1e18} GEN)`}
-            </button>
+            <div className="inline-block torch-glow w-full">
+              <button
+                onClick={handleClaimReward}
+                disabled={loading}
+                className="w-full px-6 py-3 bg-gradient-to-b from-[var(--ember-bright)] to-[var(--ember)] text-[#241505] font-display font-semibold rounded-sm hover:brightness-110 transition-all disabled:opacity-50"
+              >
+                {loading ? 'Claiming…' : `Claim Reward (${Number(activeQuest.reward) / 1e18} GEN)`}
+              </button>
+            </div>
           </div>
         )}
 
         {activeQuest.status === QuestStatus.FAILED && (
           <div className="space-y-4 text-center">
-            <div className="p-4 bg-red-900/30 border border-red-700/50 rounded-lg">
-              <h4 className="text-red-400 font-bold mb-2">Defeat! (Creativity Score: {activeQuest.creativityScore})</h4>
-              <p className="text-slate-300 italic">{activeQuest.narrativeOutcome}</p>
+            <div className="p-5 bg-[var(--blood)]/10 border border-[var(--blood)]/40 rounded-sm">
+              <h4 className="font-display text-[var(--blood)] mb-2">
+                Defeat <span className="text-[var(--parchment-dim)] font-sans text-sm font-normal">— Creativity {activeQuest.creativityScore}</span>
+              </h4>
+              <p className="text-[var(--parchment-dim)] italic leading-relaxed">{activeQuest.narrativeOutcome}</p>
             </div>
-            <button onClick={() => loadInitialData()} className="px-6 py-2 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-lg transition-colors">
+            <button
+              onClick={() => loadInitialData()}
+              className="px-6 py-2.5 bg-[var(--stone-2)] hover:bg-[var(--stone-border)] border border-[var(--stone-border)] text-[var(--parchment)] font-display rounded-sm transition-colors"
+            >
               Clear & Restart
             </button>
           </div>
@@ -196,39 +228,53 @@ export default function GenDungeonPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-950 text-slate-200 p-4 md:p-8 font-sans selection:bg-amber-500/30">
+    <main className="min-h-screen text-[var(--parchment)] p-4 md:p-8 selection:bg-[var(--ember)]/30">
       <div className="max-w-5xl mx-auto space-y-8">
-        <header className="flex flex-col md:flex-row justify-between items-center gap-4 p-6 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl">
-          <div>
-            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-600">
-              GenDungeon
-            </h1>
-            <p className="text-slate-400 text-sm mt-1">AI-Powered RPG on GenLayer</p>
+        <header className="panel-stone flex flex-col md:flex-row justify-between items-center gap-4 p-6 rounded-sm">
+          <div className="flex items-center gap-3">
+            <svg width="30" height="30" viewBox="0 0 24 24" fill="none" className="shrink-0">
+              <path d="M12 2C10 5 8 6.5 8 10a4 4 0 0 0 8 0c0-3.5-2-5-4-8Z" fill="var(--ember)" opacity="0.85" />
+              <path d="M12 6c-1 1.5-2 2.6-2 4.4a2 2 0 0 0 4 0C14 8.6 13 7.5 12 6Z" fill="var(--ember-bright)" />
+              <rect x="10.6" y="14" width="2.8" height="8" rx="1" fill="var(--stone-border)" />
+            </svg>
+            <div>
+              <h1 className="font-display text-3xl md:text-4xl text-[var(--ember-bright)]">GenDungeon</h1>
+              <p className="text-[var(--parchment-dim)] text-xs tracking-wide mt-0.5">AI-adjudicated RPG on GenLayer</p>
+            </div>
           </div>
           <WalletButton />
         </header>
 
         {!address ? (
-          <div className="text-center py-20">
-            <h2 className="text-2xl text-slate-500">Connect your wallet to begin your adventure.</h2>
+          <div className="panel-scroll text-center py-20 px-6">
+            <p className="font-display text-lg text-[var(--parchment-dim)]">Connect your wallet to begin your adventure.</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="lg:col-span-1 space-y-4">
-              <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-2xl shadow-xl">
-                <h3 className="text-lg font-bold text-amber-500 border-b border-slate-700 pb-2 mb-4">Adventurer Stats</h3>
+            <div className="lg:col-span-1">
+              <div className="panel-stone p-6 rounded-sm">
+                <h3 className="font-display text-sm tracking-wide text-[var(--ember)] pb-3 mb-4 divider-rune">Adventurer Stats</h3>
                 {stats ? (
-                  <ul className="space-y-3 text-sm">
-                    <li className="flex justify-between"><span className="text-slate-400">Quests Started:</span> <span className="font-bold">{stats.questsStarted}</span></li>
-                    <li className="flex justify-between"><span className="text-slate-400">Victories:</span> <span className="text-emerald-400 font-bold">{stats.questsSucceeded}</span></li>
-                    <li className="flex justify-between"><span className="text-slate-400">Defeats:</span> <span className="text-red-400 font-bold">{stats.questsFailed}</span></li>
-                    <li className="flex justify-between border-t border-slate-800 pt-3 mt-3">
-                      <span className="text-slate-400">Total Earnings:</span> 
-                      <span className="text-amber-400 font-bold">{Number(stats.totalRewardsEarned) / 1e18} GEN</span>
+                  <ul className="space-y-3.5 text-sm">
+                    <li className="flex justify-between items-baseline">
+                      <span className="text-[var(--parchment-dim)]">Quests Started</span>
+                      <span className="font-display font-semibold">{stats.questsStarted}</span>
+                    </li>
+                    <li className="flex justify-between items-baseline">
+                      <span className="text-[var(--parchment-dim)]">Victories</span>
+                      <span className="font-display font-semibold text-[var(--verdant)]">{stats.questsSucceeded}</span>
+                    </li>
+                    <li className="flex justify-between items-baseline">
+                      <span className="text-[var(--parchment-dim)]">Defeats</span>
+                      <span className="font-display font-semibold text-[var(--blood)]">{stats.questsFailed}</span>
+                    </li>
+                    <li className="flex justify-between items-baseline pt-3.5 mt-1 divider-rune">
+                      <span className="text-[var(--parchment-dim)]">Total Earnings</span>
+                      <span className="font-display font-semibold text-[var(--ember-bright)]">{Number(stats.totalRewardsEarned) / 1e18} GEN</span>
                     </li>
                   </ul>
                 ) : (
-                  <p className="text-slate-500 text-sm animate-pulse">Loading stats...</p>
+                  <p className="text-[var(--parchment-dim)] text-sm animate-pulse">Loading stats…</p>
                 )}
               </div>
             </div>
