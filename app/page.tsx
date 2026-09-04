@@ -44,7 +44,7 @@ export default function GenDungeonPage() {
     setLoading(true);
     try {
       // Entry fee: 1 GEN (18 decimals)
-      const entryFee = 1000000000000000000n; 
+      const entryFee = BigInt("1000000000000000000"); 
       await gd.startQuest(address, entryFee);
       await loadPlayerData();
     } catch (err: any) {
