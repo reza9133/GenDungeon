@@ -18,8 +18,8 @@ interface WalletState {
 
 const WalletContext = createContext<WalletState | null>(null);
 
-const LAST_ADDRESS_KEY = 'pledgelayer.lastConnectedAddress';
-const LAST_WALLET_TYPE_KEY = 'pledgelayer.lastWalletType';
+const LAST_ADDRESS_KEY = 'gendungeon.lastConnectedAddress';
+const LAST_WALLET_TYPE_KEY = 'gendungeon.lastWalletType';
 
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<`0x${string}` | null>(null);
