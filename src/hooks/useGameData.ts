@@ -108,7 +108,10 @@ export function useGameData(playerAddress: string | null, refreshKey: number) {
   useEffect(() => {
     setData((prev) => ({ ...prev, loading: true }));
     load();
-    const interval = setInterval(load, 6000);
+    // 12s rather than a tighter interval - GenLayer Studio's public RPC
+    // rate-limits aggressive polling (observed as HTTP 429s), and reads
+    // don't need to be that fresh to feel responsive.
+    const interval = setInterval(load, 12000);
     return () => clearInterval(interval);
   }, [load, refreshKey]);
 
