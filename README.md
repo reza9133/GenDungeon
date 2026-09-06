@@ -61,13 +61,58 @@ Then open the address Vite prints (usually `http://localhost:5173`).
 
 Two ways into the monastery:
 
-1. **Browser wallet (MetaMask or similar)** — click **Connect Wallet**. The
-   app calls `client.connect("studionet")` to add/switch your wallet to the
-   GenLayer Studio network. Recommended for real, persistent play.
+1. **MetaMask** — click **Connect with MetaMask**. This is, at the moment,
+   the *only* browser wallet GenLayer's `client.connect()` actually supports:
+   it drives MetaMask's Snaps API directly (installing a `genlayer-wallet-plugin`
+   snap) to add/switch to the GenLayer Studio network and sign transactions
+   in GenLayer's format. See the limitation note below before trying any
+   other wallet.
 2. **Burner account** — a throwaway private key generated and stashed in
    your browser's `localStorage` (never sent anywhere). Perfect for a quick
    test run, but fund it first from the 💧 faucet in the GenLayer Studio
    interface so it can cover the entry fee.
+
+**Disconnecting** now does two things, both explicit and visible next to
+your address in the header: it calls `wallet_revokePermissions` on the
+wallet (so MetaMask actually forgets this site — not just an app-side
+reset), and it remembers that you disconnected on purpose, so reloading
+the page won't silently log you back in. The next "Connect" click will
+show MetaMask's account picker again instead of skipping straight to
+whichever account you used last.
+
+## ⚠️ Known `genlayer-js` limitation: MetaMask-only, and window.ethereum conflicts
+
+If you have **more than one wallet extension installed** (e.g. MetaMask
+*and* OKX Wallet), you may see errors like:
+
+- `Method not found: wallet_getSnaps`
+- a `429` from a wallet's internal RPC/relay
+- connecting sometimes grabbing the "wrong" wallet, or the connect/disconnect
+  flow behaving inconsistently between reloads
+
+This isn't a bug in this frontend - it's because `genlayer-js@1.1.8`'s
+`client.connect()` reaches into the global `window.ethereum` **directly**
+(it ignores the `provider` passed to `createClient`) and calls MetaMask's
+proprietary Snaps API (`wallet_getSnaps` / `wallet_requestSnaps`) to install
+its signing snap. When two wallet extensions are installed, `window.ethereum`
+is ambiguous - whichever extension currently holds that global wins, and
+that can silently change between sessions. If it's not MetaMask, `connect()`
+fails, because no other wallet implements Snaps.
+
+**The fix applied here:** `src/lib/eip6963.ts` uses the
+[EIP-6963](https://eips.ethereum.org/EIPS/eip-6963) multi-provider discovery
+standard to find the *actual* MetaMask provider by its `rdns`
+(`io.metamask`), even with other wallets installed, and `genlayerClient.ts`
+points `window.ethereum` at that exact object right before calling
+`connect()`. This is a workaround for `genlayer-js`'s current hard-coded
+behavior, not a permanent fix - revisit this once the SDK accepts an
+explicit provider for `connect()`, or supports non-MetaMask wallets.
+
+**Practical upshot for players:** if MetaMask isn't installed at all
+(only OKX, say), connecting will fail with a clear "MetaMask not found"
+message rather than a cryptic Snaps error - because GenLayer genuinely
+doesn't support anything else yet for browser-wallet signing.
+
 
 ## ⚠️ A note on how contract data comes back over the wire
 
