@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-ink-vignette text-parchment-dim font-body antialiased;
+    min-height: 100vh;
+  }
+
+  ::selection {
+    background: theme("colors.candle.DEFAULT");
+    color: theme("colors.ink.DEFAULT");
+  }
+
+  :focus-visible {
+    outline: 2px solid theme("colors.candle.bright");
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  /*
+   * The hero "current chapter" card - an aged manuscript page. Asymmetric
+   * corner radii and a doubled hairline border stand in for a torn/worn
+   * page edge without a fragile clip-path.
+   */
+  .manuscript-page {
+    @apply relative bg-parchment text-ink shadow-page;
+    border-radius: 3px 22px 6px 26px;
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(74, 70, 64, 0.05) 0, transparent 40%),
+      radial-gradient(circle at 82% 74%, rgba(74, 70, 64, 0.06) 0, transparent 35%),
+      radial-gradient(circle at 60% 8%, rgba(74, 70, 64, 0.04) 0, transparent 30%),
+      linear-gradient(180deg, #efe8d8 0%, #e6dcc4 100%);
+    padding: 1px;
+  }
+
+  .manuscript-page::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(74, 70, 64, 0.35);
+    border-radius: 2px 18px 4px 22px;
+    pointer-events: none;
+  }
+
+  .manuscript-inner {
+    @apply relative px-6 py-7 sm:px-10 sm:py-9;
+  }
+
+  .chapter-mark {
+    @apply font-display italic text-candle-dim text-sm tracking-wide;
+  }
+
+  .wax-seal {
+    @apply relative flex h-16 w-16 flex-none items-center justify-center rounded-full font-display text-lg text-parchment shadow-md;
+    background: radial-gradient(circle at 32% 28%, var(--seal-hi, #a8493e), var(--seal-lo, #6f2a23) 72%);
+  }
+
+  .wax-seal--moss {
+    background: radial-gradient(circle at 32% 28%, #7fa082, #45604a 72%);
+  }
+
+  .wax-seal--candle {
+    background: radial-gradient(circle at 32% 28%, #e0a55c, #8f6329 72%);
+  }
+
+  .ledger-rule {
+    border-top: 1px solid rgba(235, 227, 208, 0.12);
+  }
+
+  .quill-cursor::after {
+    content: "";
+    display: inline-block;
+    width: 0.5em;
+    height: 1em;
+    margin-inline-start: 0.15em;
+    background: currentColor;
+    vertical-align: text-bottom;
+    animation: quill-blink 1s steps(1) infinite;
+  }
+
+  .candle-flicker {
+    animation: candle-flicker 2.6s ease-in-out infinite;
+  }
+
+  .scribe-copy {
+    animation: scribe-copy 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes quill-blink {
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+@keyframes candle-flicker {
+  0%, 100% { opacity: 1; filter: drop-shadow(0 0 6px rgba(201, 138, 60, 0.55)); }
+  25% { opacity: 0.85; }
+  50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(201, 138, 60, 0.75)); }
+  75% { opacity: 0.9; }
+}
+
+@keyframes scribe-copy {
+  0% { transform: translateY(0); opacity: 0.35; }
+  50% { transform: translateY(-2px); opacity: 1; }
+  100% { transform: translateY(0); opacity: 0.35; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .quill-cursor::after,
+  .candle-flicker,
+  .scribe-copy {
+    animation: none !important;
+  }
+}
