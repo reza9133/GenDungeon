@@ -26,9 +26,8 @@ export function createReadOnlyClient() {
 export class MetaMaskNotFoundError extends Error {
   constructor() {
     super(
-      "MetaMask was not found. GenLayer currently uses a MetaMask-specific " +
-        "Snap to sign transactions, so it only works with the MetaMask " +
-        "extension (not OKX or other wallets)."
+      "MetaMask was not found. This app only supports connecting with the " +
+        "MetaMask extension (not OKX or other wallets)."
     );
     this.name = "MetaMaskNotFoundError";
   }
@@ -37,19 +36,26 @@ export class MetaMaskNotFoundError extends Error {
 /**
  * A client backed by MetaMask specifically.
  *
- * IMPORTANT: `genlayer-js`'s `client.connect()` reaches into the global
- * `window.ethereum` internally (it is not parameterized by the `provider`
- * we pass to `createClient`), and it drives MetaMask's Snaps API
- * directly. If another wallet extension (OKX, etc.) currently holds
- * `window.ethereum`, `connect()` fails with errors like
- * "Method not found: wallet_getSnaps".
+ * IMPORTANT: we deliberately never call `genlayer-js`'s `client.connect()`
+ * here. Looking at the SDK internals, `connect()` reaches into the global
+ * `window.ethereum` directly (it ignores the `provider` passed to
+ * `createClient`) and only does two things: (1) ask the wallet to add/
+ * switch to the target chain, and (2) request installation of GenLayer's
+ * MetaMask Snap. Neither is needed for us:
+ *   - `studionet` is a Studio chain, and the SDK's own chain-match check
+ *     (`assertChainMatch`) skips itself entirely for Studio chains, so
+ *     there is nothing to add/switch.
+ *   - Every RPC method actually used for signing (`eth_requestAccounts`,
+ *     `eth_sendTransaction`, `personal_sign`, `eth_signTypedData_v4`, ...)
+ *     is routed through the explicit `provider` we pass to `createClient`
+ *     below - not through `window.ethereum` and not through the Snap.
  *
- * To make this reliable when multiple wallets are installed, we locate
- * the real MetaMask provider via EIP-6963 and point `window.ethereum` at
- * it before calling `connect()`. This is a workaround for a limitation
- * in the current `genlayer-js` release, not a design choice of ours -
- * revisit this once GenLayer's SDK accepts an explicit provider for
- * `connect()`.
+ * So `connect()` bought us nothing here, while forcing us to hijack the
+ * shared `window.ethereum` global (breaking things whenever another
+ * wallet extension, like OKX, also holds it) and occasionally surfacing
+ * spurious "Method not found: wallet_getSnaps" failures. Skipping it -
+ * the same approach PledgeLayer uses against `testnetBradbury` - is what
+ * makes connecting reliable with multiple wallet extensions installed.
  */
 export async function createBrowserWalletClient(address: `0x${string}`) {
   const metamask = await findMetaMaskProvider();
@@ -57,17 +63,11 @@ export async function createBrowserWalletClient(address: `0x${string}`) {
     throw new MetaMaskNotFoundError();
   }
 
-  // Make the ambiguous global point at the provider we actually verified
-  // is MetaMask, for the duration of this session.
-  window.ethereum = metamask;
-
-  const client = createClient({
+  return createClient({
     chain: studionet,
     account: address,
     provider: metamask,
   });
-  await client.connect("studionet");
-  return client;
 }
 
 /**
