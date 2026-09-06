@@ -8,7 +8,7 @@ interface HeaderProps {
   connecting: boolean;
   onConnectMetaMask: () => void;
   onConnectBurner: () => void;
-  onDisconnect: () => void;
+  onDisconnect: () => void | Promise<void>;
 }
 
 export default function Header({
@@ -33,7 +33,7 @@ export default function Header({
 
         <div className="flex items-center gap-3">
           <a
-            href={`https://genlayer-explorer.vercel.app`}
+            href="https://genlayer-explorer.vercel.app"
             target="_blank"
             rel="noreferrer"
             className="hidden rounded-full border border-ink-rule px-3 py-1.5 text-xs text-parchment-dim/70 transition hover:border-candle-dim hover:text-candle-bright sm:inline"
@@ -48,8 +48,9 @@ export default function Header({
                 onClick={onConnectMetaMask}
                 disabled={connecting}
                 className="rounded-full bg-candle px-4 py-2 text-sm font-medium text-ink transition hover:bg-candle-bright disabled:opacity-50"
+                title="GenLayer currently only connects through the MetaMask extension"
               >
-                Connect Wallet
+                {connecting ? "Connecting…" : "Connect with MetaMask"}
               </button>
               <button
                 onClick={onConnectBurner}
@@ -62,18 +63,22 @@ export default function Header({
           )}
 
           {mode !== "none" && address && (
-            <button
-              onClick={onDisconnect}
-              className="flex items-center gap-2 rounded-full border border-ink-rule px-4 py-2 text-sm text-parchment-dim transition hover:border-seal hover:text-seal-bright"
-              title="Disconnect"
-            >
+            <div className="flex items-center gap-2 rounded-full border border-ink-rule py-1.5 ps-4 pe-1.5">
               <span
                 className={`h-2 w-2 rounded-full ${
                   mode === "metamask" ? "bg-moss-bright" : "bg-candle-bright"
                 }`}
               />
-              {mode === "burner" ? "Burner" : "Wallet"} · {shortAddress(address)}
-            </button>
+              <span className="text-sm text-parchment-dim">
+                {mode === "burner" ? "Burner" : "MetaMask"} · {shortAddress(address)}
+              </span>
+              <button
+                onClick={onDisconnect}
+                className="ms-1 rounded-full border border-seal/40 px-3 py-1 text-xs text-seal-bright transition hover:bg-seal/15"
+              >
+                Disconnect
+              </button>
+            </div>
           )}
         </div>
       </div>
