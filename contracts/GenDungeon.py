@@ -17,9 +17,15 @@ Game loop
 3. `resolve_quest`      (write)   - AI validators reach consensus on whether
                                     the action was logical/creative enough to
                                     succeed, and how large a reward it earns.
+                                    A successful reward is reserved from the
+                                    pool immediately and stays discoverable
+                                    via `get_player_active_quest` until claimed.
 4. `claim_reward`       (write)   - successful players withdraw their reward
                                     from the pool using the Checks-Effects-
-                                    Interactions (CEI) pattern.
+                                    Interactions (CEI) pattern. The reward was
+                                    already reserved at resolution time, so
+                                    this step only pays it out and never
+                                    re-touches the pool balance.
 5. `surrender_quest`    (write)   - allows a player to forfeit an active quest,
                                     marking it as failed and freeing their slot.
 
@@ -51,6 +57,18 @@ Design notes
   on malformed input, per GenLayer best practice.
 * External value transfers (GEN tokens) are safely executed via the
   `_Recipient` EVM interface according to GenLayer documentation.
+* `reward_pool` is decremented (reserved) the instant a quest resolves to
+  success, not deferred until `claim_reward`. This guarantees the pool
+  always covers every outstanding SUCCESS-but-unclaimed reward, even when
+  several quests resolve successfully before any of them are claimed -
+  see `resolve_quest`.
+* `player_active_quest[player]` is treated as "the one thing this player
+  needs to look at next": it stays pointed at a quest through ACTIVE ->
+  SUBMITTED -> SUCCESS, only clearing on FAILED (nothing to claim) or once
+  claimed. `start_quest` therefore also blocks on an unclaimed SUCCESS
+  quest, so a player can never have more than one quest id to track and
+  the client can always resolve "what should I show/claim" with a single
+  `get_player_active_quest` read - including after a refresh.
 """
 
 from genlayer import *
@@ -412,9 +430,17 @@ class GenDungeon(gl.Contract):
             active_id = int(self.player_active_quest[player])
             if active_id != 0 and active_id in self.quests:
                 existing = self.quests[u32(active_id)]
-                if existing.status in (STATUS_ACTIVE, STATUS_SUBMITTED):
+                # STATUS_SUCCESS is included deliberately: resolve_quest
+                # keeps player_active_quest pointed at a successful quest
+                # until it's claimed (see resolve_quest), so this is the
+                # only place a stale pointer could otherwise get silently
+                # overwritten and the recorded-but-unclaimed reward would
+                # become unreachable through get_player_active_quest.
+                if existing.status in (STATUS_ACTIVE, STATUS_SUBMITTED, STATUS_SUCCESS):
                     raise gl.vm.UserError(
-                        "You already have an unresolved quest in progress"
+                        "You have a quest awaiting action, resolution, or "
+                        "reward claim - resolve or claim it before starting "
+                        "a new one"
                     )
 
         # --- Non-deterministic AI generation (consensus-validated) ---
@@ -533,6 +559,13 @@ class GenDungeon(gl.Contract):
         not on who triggers resolution, so this is intentionally open to
         avoid quests getting stuck if a player never calls back in.
 
+        On success, the reward is reserved from the pool immediately and
+        `get_player_active_quest` keeps pointing at this quest until it is
+        claimed - the client can always rediscover it, including after a
+        refresh, without any other lookup mechanism. On failure there is
+        nothing to claim, so the player's active-quest slot is freed right
+        away and they can start a new quest without any extra step.
+
         Args:
             quest_id: The quest to resolve.
 
@@ -565,6 +598,18 @@ class GenDungeon(gl.Contract):
             reward = self._compute_reward(creativity_score)
             quest.status = STATUS_SUCCESS
             quest.reward = reward
+            # Reserve the reward the instant it's recorded, by taking it out
+            # of the pool now rather than waiting for claim_reward. If we
+            # deferred this, several quests could resolve to success back
+            # to back (all unclaimed) and each would be individually capped
+            # against the same *undiminished* reward_pool, letting the sum
+            # of recorded rewards exceed what the pool actually holds -
+            # whichever player claims last would then hit a shortfall even
+            # though their quest genuinely recorded a success. Deducting
+            # here means reward_pool always equals "funds not yet promised
+            # to anyone", so every recorded reward is guaranteed payable
+            # regardless of claim order.
+            self.reward_pool = u256(int(self.reward_pool) - int(reward))
             stats.quests_succeeded = u32(int(stats.quests_succeeded) + 1)
         else:
             quest.status = STATUS_FAILED
@@ -576,8 +621,14 @@ class GenDungeon(gl.Contract):
         self.quests[quest_id] = quest
         self.player_stats[quest.player] = stats
 
-        # Free up the player's "active quest" slot regardless of outcome.
-        if quest.player in self.player_active_quest:
+        # A successful quest deliberately stays pointed-to by
+        # player_active_quest until it's claimed: get_player_active_quest
+        # is the client's single source of truth for "what does this
+        # player need to look at next", and it must keep resolving to the
+        # same quest id across a page refresh so claim_reward always has
+        # an id to call with. A failed quest has nothing left to claim, so
+        # its slot is freed immediately and the player can start again.
+        if not success and quest.player in self.player_active_quest:
             self.player_active_quest[quest.player] = u32(0)
 
         print(
@@ -593,14 +644,17 @@ class GenDungeon(gl.Contract):
 
         Implements the Checks-Effects-Interactions pattern: all validation
         and state mutation happens BEFORE the outgoing value transfer, to
-        prevent re-entrancy style exploits.
+        prevent re-entrancy style exploits. The reward amount was already
+        reserved out of `reward_pool` back when `resolve_quest` recorded
+        it, so this call only pays it out and frees the player's active-
+        quest slot - it does not touch `reward_pool` itself.
 
         Args:
             quest_id: The quest to claim the reward for.
 
         Raises:
-            gl.vm.UserError: on invalid quest id, wrong owner, wrong status,
-                              or an inconsistent reward pool.
+            gl.vm.UserError: on invalid quest id, wrong owner, or wrong
+                              status.
 
         Returns:
             The amount transferred to the caller.
@@ -624,13 +678,34 @@ class GenDungeon(gl.Contract):
         if int(reward) <= 0:
             raise gl.vm.UserError("No reward available to claim")
 
-        if int(reward) > int(self.reward_pool):
-            raise gl.vm.UserError("Reward pool inconsistency - contact owner")
+        # NOTE: there is deliberately no "reward > reward_pool" check here
+        # anymore. Once reserved at resolve_quest time, `reward` is money
+        # already carved out for *this* quest specifically, while
+        # `reward_pool` tracks funds *not yet* promised to anyone -
+        # comparing the two after reservation is comparing unrelated
+        # numbers, not a real invariant. (An earlier version of this fix
+        # kept that comparison as a "defensive" check; it was wrong and
+        # produced false-positive reverts once more than one quest had a
+        # reserved-but-unclaimed reward at the same time - caught by
+        # test_simultaneous_successful_quests_are_both_fully_payable.)
 
         # --------------------------- EFFECTS ----------------------------
         quest.status = STATUS_CLAIMED
         self.quests[quest_id] = quest
-        self.reward_pool = u256(int(self.reward_pool) - int(reward))
+        # NOTE: reward_pool was already reserved/deducted in resolve_quest
+        # at the moment this reward was recorded - it must NOT be
+        # subtracted again here, or every successful quest would drain the
+        # pool twice.
+
+        # This is the only place that clears player_active_quest for a
+        # successful quest - resolve_quest deliberately leaves it pointing
+        # here so the client can always rediscover the id to claim,
+        # including after a refresh.
+        if (
+            caller in self.player_active_quest
+            and int(self.player_active_quest[caller]) == int(quest_id)
+        ):
+            self.player_active_quest[caller] = u32(0)
 
         stats = self._get_stats(caller)
         stats.total_rewards_earned = u256(
