@@ -9,7 +9,7 @@ kept honest by validator consensus instead of a single trusted server.
 No backend, no game master behind a curtain. Just the chain, a pool of GEN,
 and a story that writes itself one block at a time.
 
-**Contract:** `0x689d7959eaE2f0397cA7a4847eA6B0269408Db76` · Network: **GenLayer Studio**
+**Contract:** `0xc49d63f60e651700777fA35d0F0aF05AF5AeA928` · Network: **GenLayer Studio**
 
 ---
 
@@ -130,6 +130,46 @@ If something doesn't render correctly against the live contract:
    `client.readContract(...)` and inspect the raw response shape.
 2. Line up the `pick(...)` and `normalize*` functions in
    `src/lib/contract.ts` with whatever key names actually came back.
+
+## 🧪 Contract tests
+
+Focused Direct Mode tests for the reward-reservation and resolve→claim
+discoverability guarantees live in `tests/test_resolve_and_claim.py`,
+using [`genlayer-test`](https://pypi.org/project/genlayer-test/)'s
+in-process runner (mocked LLM, no Studio/Docker needed):
+
+```bash
+pip install genlayer-test
+pytest tests/ -v
+```
+
+What's covered:
+
+- **`test_resolve_then_claim_end_to_end`** — a quest resolves to success,
+  stays discoverable via `get_player_active_quest` (simulating a page
+  refresh - the assertion only ever re-reads from the contract, never
+  from local state), then gets claimed; the pool is debited exactly once.
+- **`test_simultaneous_successful_quests_are_both_fully_payable`** — two
+  players each resolve a success *before either claims*, with a pool too
+  small to cover both at face value. Verifies the second quest's reward is
+  correctly capped by the *already-reserved* pool (not the original,
+  undiminished one), both stay independently discoverable, and both claim
+  in full regardless of order - the exact scenario that used to raise a
+  false "Reward pool inconsistency" before this fix.
+- **`test_cannot_claim_the_same_quest_twice`**,
+  **`test_failed_quest_reserves_nothing_and_frees_the_slot_immediately`**,
+  **`test_start_quest_blocked_while_a_success_is_unclaimed`** — adjacent
+  guardrails on the same invariant (no double payout, failures don't
+  reserve anything, and a player can't silently orphan an unclaimed
+  reward by starting a fresh quest over it).
+
+**Note on `genlayer-test@0.29.2` + current `genvm` releases:** this
+version of `genlayer-test` auto-downloads the *latest* GitHub release of
+`genlayerlabs/genvm` and expects a `genvm-universal.tar.xz` asset, but
+recent releases (`v0.3.0-rc*`) renamed that asset. The tests here pin
+`sdk_version="v0.2.16"` (the newest release still shipping that filename)
+in `tests/test_resolve_and_claim.py`'s `_deploy()` helper as a workaround.
+Bump it once you upgrade `genlayer-test` to a version that's back in sync.
 
 ## 🗂️ Structure
 
