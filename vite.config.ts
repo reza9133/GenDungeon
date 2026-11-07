@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -7,6 +7,11 @@ export default defineConfig({
     global: "globalThis",
   },
   build: {
-    chunkSizeWarningLimit: 800,
+    target: "es2020",
+    chunkSizeWarningLimit: 600,
+  },
+  test: {
+    environment: "node",
+    include: ["src/__tests__/**/*.test.ts", "e2e/**/*.test.ts"],
   },
 });

@@ -1,199 +1,120 @@
-# 🕯️ GenDungeon
+# GenDungeon
 
-> *An AI Dungeon Master lives on-chain. It writes your obstacles. It judges your
-> choices. It never runs the same story twice.*
+An on-chain AI Dungeon Master for [GenLayer](https://www.genlayer.com). You pay an entry fee, the contract's validators
+write you an obstacle, you answer in your own words, and the same validators judge your plan. Rewards come from a pool
+that the players themselves fill.
 
-GenDungeon is a "living manuscript" frontend for an **Intelligent Contract**
-on GenLayer — a smart contract with a non-deterministic LLM at its core,
-kept honest by validator consensus instead of a single trusted server.
-No backend, no game master behind a curtain. Just the chain, a pool of GEN,
-and a story that writes itself one block at a time.
+![The gate](docs/assets/screens/gate-desktop.png)
 
-**Contract:** `0xc49d63f60e651700777fA35d0F0aF05AF5AeA928` · Network: **GenLayer Studio**
+The game is an **Intelligent Contract**: a Python contract whose consensus includes LLM calls. Language models decide
+only what a language model is good at (is this plan relevant, plausible, creative). Everything that touches money, rank
+or state is ordinary deterministic code that every validator re-derives.
 
----
+- Contract: [`contracts/GenDungeon.py`](contracts/GenDungeon.py), version 2.0.0
+- Web app: Vite, React, Tailwind, three.js, [`genlayer-js`](https://www.npmjs.com/package/genlayer-js)
+- First release (v1) on GenLayer Studio: `0xc49d63f60e651700777fA35d0F0aF05AF5AeA928` (the app reads it in legacy mode)
 
-## 📜 How a chapter unfolds
+## What is new in v2
 
-Every quest is a five-act play performed entirely by the contract:
+| Area | v1 | v2 |
+|---|---|---|
+| Verdict | One LLM call returned a score and a success flag. | The LLM reports three rubric scores and a tamper flag. The contract computes the verdict from them. |
+| Empty pool | A win against an empty pool could never be claimed and locked the player out. | Zero-reward victories are claimable, so the slot is always released. |
+| Accounting | A reward left the free pool at verdict time, but deposits, reservations and payouts were not tracked, so the books could not be audited. | Deposits, reservations and payouts are counted separately; `get_treasury` proves they add up and reports solvency. |
+| Size of one win | A win could take the entire pool. | A per-quest payout cap (50% of the pool by default). |
+| Prompt injection | Player text went into the prompt as it was. | Sanitising, a normalising marker filter, untrusted-data framing, a validator-side scenario audit, a tamper flag that always fails a quest. |
+| Difficulty | One flat game. | Three tiers with their own fee, pass mark, reward and renown. |
+| Progression | Win and loss counters. | Renown, six ranks, win streaks, an on-chain hall of fame. |
+| Operations | Owner could change fees. | Payout cap, quest expiry, pause switch, two-step ownership transfer. |
+| Observability | Getters for config, quests, stats, history and the open feed. | Treasury view with a books-balance invariant and a solvency check, quote and dry-run views, events. |
+| Frontend | One page with panels and a transaction overlay. | Seven pages, a three-dimensional hero, a demo mode, self-hosted fonts, a lazy-loaded live runtime. |
+| Verification | 5 tests. | 276 contract tests, mutation testing, 52 TypeScript tests, an accessibility audit and a live end-to-end suite with adversarial scenarios. |
 
-| # | Method | Type | What happens |
-|---|--------|------|---------------|
-| 1 | `start_quest` | 💰 payable | You pay the entry fee → it drops into the reward pool → the AI scribes reach consensus on a brand-new obstacle, written just for you. |
-| 2 | `submit_action` | ✍️ write | You describe, in your own words, how you attempt to overcome it. No multiple choice — pure freeform text. |
-| 3 | `resolve_quest` | ⚖️ write | The validators independently re-judge your action for logic and creativity, then vote. Openly callable by anyone, so no quest is ever stuck waiting on a single actor. |
-| 4 | `claim_reward` | 💸 write | Win, and you pull your reward out of the pool — via a Checks-Effects-Interactions withdrawal, so the payout can't be gamed mid-transaction. |
-| 5 | `surrender_quest` | 🏳️ write | Lose your nerve, forfeit the entry fee, and open a fresh page. |
+The full change list is in [CHANGELOG.md](CHANGELOG.md); the reasoning is in [docs/](docs/).
 
-Every quest carries a status through its life: `ACTIVE → SUBMITTED → SUCCESS`
-or `FAILED` → optionally `CLAIMED`. The frontend narrates each of these
-transitions live via `TransactionOverlay`, so you watch consensus happen
-instead of staring at a spinner.
-
-## 🧠 Why this isn't just "a contract that calls an API"
-
-The scenario text and the pass/fail verdict aren't fetched from some
-off-chain oracle you have to trust — they're produced through GenLayer's
-**Optimistic Democracy** consensus:
-
-- A leader node proposes an LLM output (a scenario, or a verdict).
-- One or more validator nodes **independently regenerate their own answer**
-  from scratch — not just rubber-stamp the leader's formatting — and the
-  network only finalizes state once they agree closely enough (exact match
-  on success/failure, ±15 tolerance on the creativity score).
-- Only after that non-deterministic consensus settles does any deterministic
-  state mutation (pool balance, quest status, stats) actually happen.
-
-That's the "living manuscript" conceit: no single party — not even the
-contract deployer — unilaterally decides whether your witty escape plan
-deserves the jackpot.
-
-## 🚀 Run it
+## Quick start
 
 ```bash
-npm install
+npm ci
+npm run dev          # http://localhost:5173
+```
+
+With no contract address configured the app runs in **demo mode**: an in-memory model of the contract, with the same
+rules, the same messages and a deterministic stand-in for the judges. Nothing is sent anywhere. Use it to see every
+screen without a wallet.
+
+### Connect to a deployed contract
+
+```bash
+cp .env.example .env
+# set VITE_CONTRACT_ADDRESS=0x...   (a GenDungeon v2 deployment)
 npm run dev
 ```
 
-Then open the address Vite prints (usually `http://localhost:5173`).
+Or open the app with `?contract=0x...` in the address. The app accepts a MetaMask account or creates a burner account
+in the browser. Reads and writes go through `genlayer-js` to GenLayer Studio.
 
-## 🔑 Connecting
+### Deploy your own
 
-Two ways into the monastery:
-
-1. **MetaMask** — click **Connect with MetaMask**. This is, at the moment,
-   the *only* browser wallet GenLayer's `client.connect()` actually supports:
-   it drives MetaMask's Snaps API directly (installing a `genlayer-wallet-plugin`
-   snap) to add/switch to the GenLayer Studio network and sign transactions
-   in GenLayer's format. See the limitation note below before trying any
-   other wallet.
-2. **Burner account** — a throwaway private key generated and stashed in
-   your browser's `localStorage` (never sent anywhere). Perfect for a quick
-   test run, but fund it first from the 💧 faucet in the GenLayer Studio
-   interface so it can cover the entry fee.
-
-**Disconnecting** now does two things, both explicit and visible next to
-your address in the header: it calls `wallet_revokePermissions` on the
-wallet (so MetaMask actually forgets this site — not just an app-side
-reset), and it remembers that you disconnected on purpose, so reloading
-the page won't silently log you back in. The next "Connect" click will
-show MetaMask's account picker again instead of skipping straight to
-whichever account you used last.
-
-## ⚠️ Known `genlayer-js` limitation: MetaMask-only, and window.ethereum conflicts
-
-If you have **more than one wallet extension installed** (e.g. MetaMask
-*and* OKX Wallet), you may see errors like:
-
-- `Method not found: wallet_getSnaps`
-- a `429` from a wallet's internal RPC/relay
-- connecting sometimes grabbing the "wrong" wallet, or the connect/disconnect
-  flow behaving inconsistently between reloads
-
-This isn't a bug in this frontend - it's because `genlayer-js@1.1.8`'s
-`client.connect()` reaches into the global `window.ethereum` **directly**
-(it ignores the `provider` passed to `createClient`) and calls MetaMask's
-proprietary Snaps API (`wallet_getSnaps` / `wallet_requestSnaps`) to install
-its signing snap. When two wallet extensions are installed, `window.ethereum`
-is ambiguous - whichever extension currently holds that global wins, and
-that can silently change between sessions. If it's not MetaMask, `connect()`
-fails, because no other wallet implements Snaps.
-
-**The fix applied here:** `src/lib/eip6963.ts` uses the
-[EIP-6963](https://eips.ethereum.org/EIPS/eip-6963) multi-provider discovery
-standard to find the *actual* MetaMask provider by its `rdns`
-(`io.metamask`), even with other wallets installed, and `genlayerClient.ts`
-points `window.ethereum` at that exact object right before calling
-`connect()`. This is a workaround for `genlayer-js`'s current hard-coded
-behavior, not a permanent fix - revisit this once the SDK accepts an
-explicit provider for `connect()`, or supports non-MetaMask wallets.
-
-**Practical upshot for players:** if MetaMask isn't installed at all
-(only OKX, say), connecting will fail with a clear "MetaMask not found"
-message rather than a cryptic Snaps error - because GenLayer genuinely
-doesn't support anything else yet for browser-wallet signing.
-
-
-## ⚠️ A note on how contract data comes back over the wire
-
-The contract's view methods (`get_config`, `get_quest`, `get_player_stats`, …)
-return instances of `@allow_storage` dataclasses (`ConfigView`, `QuestView`,
-etc.) — every custom-class-returning example in the official GenLayer docs
-uses `@allow_storage`, but the *exact* calldata encoding for client languages
-(JS/TS) isn't formally pinned down. So `src/lib/contract.ts` reads every
-field defensively, trying several plausible key names (`snake_case` and
-`camelCase`) via a `pick(...)` fallback chain rather than assuming one shape.
-
-If something doesn't render correctly against the live contract:
-
-1. Call the `get_*` method straight from the browser console with
-   `client.readContract(...)` and inspect the raw response shape.
-2. Line up the `pick(...)` and `normalize*` functions in
-   `src/lib/contract.ts` with whatever key names actually came back.
-
-## 🧪 Contract tests
-
-Focused Direct Mode tests for the reward-reservation and resolve→claim
-discoverability guarantees live in `tests/test_resolve_and_claim.py`,
-using [`genlayer-test`](https://pypi.org/project/genlayer-test/)'s
-in-process runner (mocked LLM, no Studio/Docker needed):
+Either paste `contracts/GenDungeon.py` into GenLayer Studio and deploy with the constructor arguments
+`entry_fee`, `min_reward`, `max_reward` (all in wei), or let the end-to-end script do it and print the address:
 
 ```bash
-pip install genlayer-test
-pytest tests/ -v
+npm run e2e:live:quick
 ```
 
-What's covered:
+## Pages
 
-- **`test_resolve_then_claim_end_to_end`** — a quest resolves to success,
-  stays discoverable via `get_player_active_quest` (simulating a page
-  refresh - the assertion only ever re-reads from the contract, never
-  from local state), then gets claimed; the pool is debited exactly once.
-- **`test_simultaneous_successful_quests_are_both_fully_payable`** — two
-  players each resolve a success *before either claims*, with a pool too
-  small to cover both at face value. Verifies the second quest's reward is
-  correctly capped by the *already-reserved* pool (not the original,
-  undiminished one), both stay independently discoverable, and both claim
-  in full regardless of order - the exact scenario that used to raise a
-  false "Reward pool inconsistency" before this fix.
-- **`test_cannot_claim_the_same_quest_twice`**,
-  **`test_failed_quest_reserves_nothing_and_frees_the_slot_immediately`**,
-  **`test_start_quest_blocked_while_a_success_is_unclaimed`** — adjacent
-  guardrails on the same invariant (no double payout, failures don't
-  reserve anything, and a player can't silently orphan an unclaimed
-  reward by starting a fresh quest over it).
+| Route | Purpose |
+|---|---|
+| `#/` | The gate: three-dimensional hero, the three doors, a hall-of-fame preview, what is new in v2 |
+| `#/play` | Choose a door, read the obstacle, write an action, watch consensus, claim |
+| `#/chronicle` | Every quest you have played, with filters |
+| `#/hall` | The on-chain hall of fame and the feed of open quests |
+| `#/vault` | Treasury, books-balance invariant, reward calculator |
+| `#/codex` | Rules, scoring formula, security model, v1 to v2 changes |
+| `#/keeper` | Owner controls: fees, payout cap, quest time limit, pause, ownership |
 
-**Note on `genlayer-test@0.29.2` + current `genvm` releases:** this
-version of `genlayer-test` auto-downloads the *latest* GitHub release of
-`genlayerlabs/genvm` and expects a `genvm-universal.tar.xz` asset, but
-recent releases (`v0.3.0-rc*`) renamed that asset. The tests here pin
-`sdk_version="v0.2.16"` (the newest release still shipping that filename)
-in `tests/test_resolve_and_claim.py`'s `_deploy()` helper as a workaround.
-Bump it once you upgrade `genlayer-test` to a version that's back in sync.
+## Verify everything
 
-## 🗂️ Structure
-
-```
-src/
-  lib/
-    genlayerClient.ts    Network connection (read-only, wallet, burner account)
-    contract.ts          Typed contract read/write functions + defensive decoding
-    format.ts            GEN <-> wei conversion and display helpers
-  hooks/
-    useWallet.ts         Wallet connection state
-    useGameData.ts       Periodic polling of public/player data
-  components/
-    Header                Wallet controls, contract link
-    ManuscriptCard         The central quest card — the whole game loop lives here
-    LedgerRail              Pool stats + your lifetime stats
-    QuestHistory / ActiveQuestsFeed   Your past chapters / everyone else's live battles
-    TransactionOverlay      Live narration of each consensus step
-    AdminPanel               Owner-only pool funding & parameter tuning
+```bash
+pip install -r requirements-dev.txt
+npm run test:contract     # 276 contract tests (GenVM direct mode, LLM mocked)
+npm run mutation          # 14 deliberate contract bugs, every one must be caught
+npm run check             # typecheck, 52 TypeScript tests, production build
+npm run e2e:dry           # all end-to-end scenarios against the in-memory model
+npm run e2e:live          # the same scenarios against a freshly deployed contract on GenLayer
+npm run e2e:commit        # commit the newest live report (refuses anything that is not a real run)
 ```
 
-## ⛽ Gas cost / genlayer-js version
+`e2e:dry` is a check of the scripts and the report generator. Only `e2e:live` produces evidence about the contract.
+See [docs/E2E.md](docs/E2E.md), including how to run it in a GitHub Codespace.
 
-Tested against `genlayer-js@1.1.8` (latest stable at time of writing). If
-you bump the SDK, re-check the signatures of `readContract` /
-`writeContract` / `waitForTransactionReceipt` in particular — those are the
-three calls this frontend leans on hardest.
+## Repository layout
+
+```
+contracts/GenDungeon.py     the Intelligent Contract
+tests/                      contract tests, fuzzing, security and economy suites
+scripts/mutation_check.py   mutation testing for the contract
+scripts/logo, scripts/ui    logo tracing, screenshot capture, accessibility and performance audits
+src/lib/                    rules, formatting, GameApi, live client, in-memory model
+src/state, src/pages        stores, transactions overlay, the seven pages
+src/components              logo, emblem, 3D hero, score bars, doors
+e2e/live/                   end-to-end harness, suites, report generator
+docs/                       architecture, security, economy, testing, E2E, UI and performance
+reports/                    committed live end-to-end reports
+.devcontainer/, .github/    Codespaces setup and CI workflows
+```
+
+## Documentation
+
+| Document | Contents |
+|---|---|
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Contract design, consensus, frontend layers |
+| [docs/CONTRACT_API.md](docs/CONTRACT_API.md) | Every method, who may call it, what it reverts with |
+| [docs/SECURITY.md](docs/SECURITY.md) | Threat model and the defences against each threat |
+| [docs/ECONOMY.md](docs/ECONOMY.md) | Fees, rewards, reservations, the books-balance invariant |
+| [docs/TESTING.md](docs/TESTING.md) | Test layers, mutation testing, what is and is not covered |
+| [docs/E2E.md](docs/E2E.md) | The live end-to-end suite, Codespaces, reports |
+| [docs/UI.md](docs/UI.md) | Design language, the logo, 3D, accessibility, performance numbers |
+| [docs/MILESTONE.md](docs/MILESTONE.md) | Milestone summary and evidence table |

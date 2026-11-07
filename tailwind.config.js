@@ -4,41 +4,57 @@ export default {
   theme: {
     extend: {
       colors: {
-        ink: {
-          DEFAULT: "#14181c",
-          soft: "#1c2128",
-          rule: "#2a2f37",
+        basalt: {
+          950: "#080c0e",
+          900: "#0d1316",
+          800: "#131b1f",
+          700: "#1b262b",
+          600: "#27353b",
+          500: "#3a4b52",
         },
-        parchment: {
-          DEFAULT: "#ebe3d0",
-          dim: "#d9cdb0",
-          shadow: "#c7b997",
+        verdigris: {
+          300: "#8fe0cd",
+          400: "#5fc7b0",
+          500: "#3fae97",
+          600: "#2c8a77",
+          700: "#1f6658",
         },
-        candle: {
-          DEFAULT: "#c98a3c",
-          bright: "#e0a55c",
-          dim: "#8f6329",
+        ember: {
+          300: "#ffc58a",
+          400: "#ffa24d",
+          500: "#f08a3c",
+          600: "#cf6d22",
+          700: "#9c4e14",
         },
-        seal: {
-          DEFAULT: "#8c3b32",
-          bright: "#a8493e",
+        vellum: {
+          DEFAULT: "#ece2c8",
+          dim: "#cfc3a3",
+          shade: "#b9aa86",
         },
-        moss: {
-          DEFAULT: "#5c7a5e",
-          bright: "#729875",
+        oxblood: {
+          400: "#d4695b",
+          500: "#b3473b",
+          600: "#8c3329",
         },
-        iron: "#4a4640",
+        ink: "#2a2418",
       },
       fontFamily: {
-        display: ["Spectral", "Georgia", "serif"],
-        body: ["'IBM Plex Sans'", "system-ui", "sans-serif"],
+        display: ['"IM Fell English"', "Georgia", "serif"],
+        body: ['"Hanken Grotesk Variable"', "system-ui", "sans-serif"],
       },
-      backgroundImage: {
-        "ink-vignette":
-          "radial-gradient(ellipse at top, #1c2128 0%, #14181c 60%, #0e1115 100%)",
+      keyframes: {
+        rise: { "0%": { opacity: "0", transform: "translateY(14px)" }, "100%": { opacity: "1", transform: "none" } },
+        flicker: {
+          "0%,100%": { opacity: "0.9" },
+          "40%": { opacity: "1" },
+          "60%": { opacity: "0.78" },
+        },
+        sweep: { "0%": { transform: "translateX(-100%)" }, "100%": { transform: "translateX(100%)" } },
       },
-      boxShadow: {
-        page: "0 1px 0 rgba(235,227,208,0.6), 0 30px 60px -20px rgba(0,0,0,0.6)",
+      animation: {
+        rise: "rise 0.6s cubic-bezier(0.2,0.7,0.2,1) both",
+        flicker: "flicker 3.2s ease-in-out infinite",
+        sweep: "sweep 2.4s linear infinite",
       },
     },
   },
