@@ -1,181 +1,63 @@
-import { useState } from "react";
-import { TransactionStatus } from "genlayer-js/types";
-import { useWallet } from "./hooks/useWallet";
-import { useGameData } from "./hooks/useGameData";
-import { genToWei } from "./lib/format";
-import {
-  claimReward,
-  fundPool,
-  resolveQuest,
-  setFeeAndRewards,
-  startQuest,
-  submitAction,
-  surrenderQuest,
-} from "./lib/contract";
+import { Suspense, lazy } from "react";
+import { HashRouter, Route, Routes, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import Footer from "./components/Footer";
 import Header from "./components/Header";
-import ManuscriptCard from "./components/ManuscriptCard";
-import LedgerRail from "./components/LedgerRail";
-import QuestHistory from "./components/QuestHistory";
-import ActiveQuestsFeed from "./components/ActiveQuestsFeed";
-import TransactionOverlay from "./components/TransactionOverlay";
-import AdminPanel from "./components/AdminPanel";
+import ModeBanner from "./components/ModeBanner";
+import { Skeleton } from "./components/Shared";
+import { SessionProvider } from "./state/session";
+import { TxProvider } from "./state/tx";
+import Gate from "./pages/Gate";
 
-interface OverlayState {
-  title: string;
-  status: TransactionStatus | null;
-  error: string | null;
+const Play = lazy(() => import("./pages/Play"));
+const Chronicle = lazy(() => import("./pages/Chronicle"));
+const Hall = lazy(() => import("./pages/Hall"));
+const Vault = lazy(() => import("./pages/Vault"));
+const Codex = lazy(() => import("./pages/Codex"));
+const Keeper = lazy(() => import("./pages/Keeper"));
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => {
+    window.scrollTo({ top: 0 });
+  }, [pathname]);
+  return null;
+}
+
+function NotFound() {
+  return (
+    <div className="page py-24 text-center">
+      <h1 className="display">Lost in the dark</h1>
+      <p className="lede mx-auto mt-4">There is nothing at this address. Use the menu to find your way back.</p>
+    </div>
+  );
 }
 
 export default function App() {
-  const wallet = useWallet();
-  const [refreshKey, setRefreshKey] = useState(0);
-  const game = useGameData(wallet.address, refreshKey);
-  const [overlay, setOverlay] = useState<OverlayState | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  const isOwner =
-    !!wallet.address &&
-    !!game.owner &&
-    wallet.address.toLowerCase() === game.owner.toLowerCase();
-
-  async function runAction<T>(
-    title: string,
-    action: (onStatus: (s: TransactionStatus) => void) => Promise<T>
-  ) {
-    if (!wallet.client) return;
-    setBusy(true);
-    setOverlay({ title, status: null, error: null });
-    try {
-      await action((status) => setOverlay((o) => (o ? { ...o, status } : o)));
-      setRefreshKey((k) => k + 1);
-    } catch (err: any) {
-      setOverlay((o) =>
-        o ? { ...o, error: err?.message ?? "This action failed." } : o
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  const handleStartQuest = () => {
-    if (!wallet.client || !game.config) return;
-    runAction("Opening a new chapter", (onStatus) =>
-      startQuest(wallet.client!, game.config!.entryFee, onStatus)
-    );
-  };
-
-  const handleSubmitAction = (action: string) => {
-    if (!wallet.client || !game.activeQuestId || action.trim().length === 0) return;
-    runAction("Submitting your action", (onStatus) =>
-      submitAction(wallet.client!, game.activeQuestId!, action.trim(), onStatus)
-    );
-  };
-
-  const handleResolve = () => {
-    if (!wallet.client || !game.activeQuestId) return;
-    runAction("Scribe judgment", (onStatus) =>
-      resolveQuest(wallet.client!, game.activeQuestId!, onStatus)
-    );
-  };
-
-  const handleClaim = () => {
-    if (!wallet.client || !game.activeQuestId) return;
-    runAction("Claiming reward", (onStatus) =>
-      claimReward(wallet.client!, game.activeQuestId!, onStatus)
-    );
-  };
-
-  const handleSurrender = () => {
-    if (!wallet.client) return;
-    runAction("Fleeing the quest", (onStatus) => surrenderQuest(wallet.client!, onStatus));
-  };
-
-  const handleFundPool = (amountGen: string) => {
-    if (!wallet.client) return;
-    runAction("Funding the pool", (onStatus) =>
-      fundPool(wallet.client!, genToWei(amountGen), onStatus)
-    );
-  };
-
-  const handleUpdateParams = (entryFeeGen: string, minRewardGen: string, maxRewardGen: string) => {
-    if (!wallet.client) return;
-    runAction("Updating parameters", (onStatus) =>
-      setFeeAndRewards(
-        wallet.client!,
-        genToWei(entryFeeGen),
-        genToWei(minRewardGen),
-        genToWei(maxRewardGen),
-        onStatus
-      )
-    );
-  };
-
   return (
-    <div className="min-h-screen pb-24">
-      <Header
-        mode={wallet.mode}
-        address={wallet.address}
-        connecting={wallet.connecting}
-        onConnectMetaMask={wallet.connectMetaMask}
-        onConnectBurner={wallet.connectBurner}
-        onDisconnect={wallet.disconnect}
-      />
-
-      {wallet.error && (
-        <div className="mx-auto mt-4 max-w-6xl px-5 sm:px-8">
-          <p className="rounded-md border border-seal/40 bg-seal/10 px-4 py-2.5 text-sm text-seal-bright">
-            {wallet.error}
-          </p>
-        </div>
-      )}
-
-      <main className="mx-auto flex max-w-6xl flex-col gap-10 px-5 pt-10 sm:px-8 lg:flex-row-reverse">
-        <LedgerRail config={game.config} stats={game.stats} connected={!!wallet.address} />
-
-        <div className="flex-1 space-y-10">
-          <ManuscriptCard
-            connected={!!wallet.address}
-            config={game.config}
-            quest={game.activeQuest}
-            busy={busy}
-            onStartQuest={handleStartQuest}
-            onSubmitAction={handleSubmitAction}
-            onResolve={handleResolve}
-            onClaim={handleClaim}
-            onSurrender={handleSurrender}
-          />
-
-          <section>
-            <h2 className="chapter-mark mb-4">Others' Battlefield</h2>
-            <ActiveQuestsFeed items={game.globalActiveQuests} />
-          </section>
-
-          {!!wallet.address && (
-            <section>
-              <h2 className="chapter-mark mb-4">Chronicle of Past Chapters</h2>
-              <QuestHistory items={game.history} />
-            </section>
-          )}
-
-          {isOwner && (
-            <AdminPanel
-              config={game.config}
-              busy={busy}
-              onFundPool={handleFundPool}
-              onUpdateParams={handleUpdateParams}
-            />
-          )}
-        </div>
-      </main>
-
-      {overlay && (
-        <TransactionOverlay
-          title={overlay.title}
-          status={overlay.status}
-          error={overlay.error}
-          onDismiss={() => setOverlay(null)}
-        />
-      )}
-    </div>
+    <HashRouter>
+      <SessionProvider>
+        <TxProvider>
+          <ScrollToTop />
+          <Header />
+          <ModeBanner />
+          <main id="main" className="relative z-10 min-h-[60vh]">
+            <Suspense fallback={<div className="page py-16"><Skeleton className="h-64" /></div>}>
+              <Routes>
+                <Route path="/" element={<Gate />} />
+                <Route path="/play" element={<Play />} />
+                <Route path="/chronicle" element={<Chronicle />} />
+                <Route path="/hall" element={<Hall />} />
+                <Route path="/vault" element={<Vault />} />
+                <Route path="/codex" element={<Codex />} />
+                <Route path="/keeper" element={<Keeper />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </Suspense>
+          </main>
+          <Footer />
+        </TxProvider>
+      </SessionProvider>
+    </HashRouter>
   );
 }

@@ -33,7 +33,7 @@ const INITIAL_STATE: WalletState = {
   error: null,
 };
 
-export function useWallet() {
+export function useWallet(enabled = true) {
   const [state, setState] = useState<WalletState>(INITIAL_STATE);
   // Tracks the exact MetaMask provider object currently in use so the
   // accountsChanged/chainChanged listeners can be attached/removed from
@@ -156,6 +156,7 @@ export function useWallet() {
     let cancelled = false;
 
     async function tryRestore() {
+      if (!enabled) return;
       if (localStorage.getItem(EXPLICIT_DISCONNECT_FLAG)) return;
 
       const burnerKey = localStorage.getItem(BURNER_KEY_STORAGE) as
