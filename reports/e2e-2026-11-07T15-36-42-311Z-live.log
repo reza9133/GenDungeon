@@ -1,0 +1,94 @@
+15:36:42 GenDungeon end-to-end run (live)
+15:36:42 contract sha256 7f70148e77512569…  commit 170a168  node v22.16.0
+15:36:42 checking that the network is reachable ...
+15:36:42   generated four throwaway accounts in /workspaces/GenDungeon/.e2e/accounts.json (git-ignored)
+15:36:42   network: Genlayer Studio Network (default endpoint), at most 24 requests a minute
+15:36:48   funded owner 0x1A6f8721574FDdA25160A8D8621302886DE99266 (1 GEN)
+15:36:54   funded alice 0x338D8Aab4dC8307dec78BB95b7a87B048666d726 (1 GEN)
+15:36:59   funded bob 0x8d011a7fC60567CA4C3244c5690f71758D90bF55 (1 GEN)
+15:37:46   funded carol 0xD7EBCAa62a1E69951E75bdDA1825F94fB53fb824 (1 GEN)
+15:37:47   the network parsed the contract: 28 public methods
+15:37:47   deploying contracts/GenDungeon.py ...
+15:37:55   deployed at 0xF7eb3Aa417c155814EB44247A1308EB23Fc02805 (tx 0x417f93c377cf0fa2d5ca4c4c29784a4cee60aa3ed76bea7f4b0ce85cb06ca858)
+15:37:56   contract 0xF7eb3Aa417c155814EB44247A1308EB23Fc02805
+
+== Deployment ==
+15:37:56   [F01] The deployed contract speaks the v2 interface with the constructor settings
+15:38:00       -> PASS: address 0xF7eb3Aa417c155814EB44247A1308EB23Fc02805 (4.7s)
+15:38:00   [F02] A fresh treasury balances and is solvent
+15:38:02       -> PASS: deposited 0, pool 0, reserved 0, paid out 0 (1.2s)
+15:38:02   [F03] The owner can fund the pool and the deposit is accounted
+15:38:46       -> PASS: deposited 20000000000000000, pool 20000000000000000, reserved 0, paid out 0 (44.9s)
+
+== A full quest (functional) ==
+15:38:46   [F04] Starting a quest writes an obstacle, takes the fee and opens the slot
+15:39:20       -> PASS: quest #1: "You reach a narrow walkway above a cooling lava channel, but a careless smith has left a cart of iron billets " (33.5s)
+15:39:20   [F05] Submitting an action stores it and moves the quest to review
+15:39:51       -> PASS (30.8s)
+15:39:51   [F06] Resolution scores the action and the contract derives the verdict itself
+15:41:46       -> PASS: victory, scores r74/p63/c41 = 60; "They react cautiously to the rolling cart, checking their footing and trying to secure a rope before" (115.6s)
+15:41:46   [A05b] A stranger cannot claim a won quest before its owner does
+15:42:10       -> PASS: rejected, reason verified (23.9s)
+15:42:10   [F07] Claiming pays out exactly the reserved reward once and releases the player
+15:42:46       -> PASS: 4200000000000000 wei claimed; deposited 21000000000000000, pool 16800000000000000, reserved 0, paid out 4200000000000000 (35.9s)
+15:42:46   [F08] Stats, history, renown and the hall of fame reflect the win
+15:42:55       -> PASS: rank Wanderer, renown 32 (8.5s)
+15:42:55   [F09] Surrendering an unanswered quest closes it, frees the slot and clears the feed
+15:43:44       -> PASS (49.3s)
+15:43:44   [F10] quote_reward agrees with the client-side formula for a grid of inputs
+15:44:22       -> PASS: 15 quotes match (37.9s)
+15:44:22   [F11] validate_action dry-runs the submit-time checks
+15:44:43       -> PASS (20.9s)
+
+== Keeper operations ==
+15:44:43   [F12] The owner can tune the payout cap and the quest time limit, and reads show it
+15:45:50       -> PASS (66.7s)
+15:45:50   [F13] Two-step ownership handover moves the keys and can be undone
+15:46:17   the RPC gateway answered with HTTP 502; waiting 3s (retry 1/6)
+15:47:07       -> PASS (77.0s)
+
+== Adversarial: access control ==
+15:47:07   [A01] A stranger cannot change any owner setting
+15:49:01       -> PASS: set_fee_and_rewards: rejected, reason verified; set_payout_cap: rejected, reason verified; set_quest_ttl: rejected, reason verified; set_paused: rejected, reaso (114.8s)
+15:49:01   [A02] Accepting ownership without a nomination, or as the wrong account, fails
+15:50:35       -> PASS: rejected, reason verified; rejected, reason verified; rejected, reason verified (93.3s)
+15:50:35   [A03] The owner cannot set nonsense parameters
+15:53:13       -> PASS: zero fee: ok, min above max: ok, absurd fee: ok, cap zero: ok, cap over 100%: ok, ttl too short: ok, ttl too long: ok, invalid heir: ok, self as heir: ok (158.8s)
+
+== Adversarial: payments and quest ownership ==
+15:53:13   [A04] Wrong payments and unknown tiers create nothing
+15:55:10       -> PASS: one wei short: ok, no payment: ok, tier 3: ok, tier 4294967295: ok, tier 2 paying the tier 0 price: ok, zero-value deposit: ok (116.4s)
+15:55:10   [A05] Strangers cannot act on someone else's quest
+15:56:28       -> PASS: rejected, reason verified; rejected, reason verified; rejected, reason verified (78.4s)
+15:56:28   [A06] Starting a second quest while one is open is refused
+15:56:50       -> PASS: rejected, reason verified (21.5s)
+
+== Adversarial: prompt injection ==
+15:56:50   [A07] 6 injection styles are flagged by the contract's own dry-run
+15:57:05       -> PASS: plain override, leetspeak, separators, letter spacing, role play, fake system block (14.9s)
+15:57:05   [A08] Injected text is refused on-chain and the quest stays untouched
+15:57:59       -> PASS: plain override: rejected, reason verified; separators: rejected, reason verified; letter spacing: rejected, reason verified (54.6s)
+15:57:59   [A09] Empty, too short and too long actions are refused on-chain
+15:58:49       -> PASS: rejected, reason verified; rejected, reason verified; rejected, reason verified (49.4s)
+
+== Adversarial: pause keeps funds reachable ==
+15:58:49   [A10] While paused nobody can start a quest, but an open quest can still be answered and judged
+16:00:22       -> PASS: rejected, reason verified; bob's quest #3 judged while paused: victory (93.6s)
+16:00:22   [A11] Replays are refused: double claim, re-submit and re-resolve
+16:01:50       -> PASS: rejected, reason verified; rejected, reason verified; stranger claim: rejected, reason verified; double claim: rejected, reason verified (87.6s)
+
+== Adversarial: expiry ==
+16:01:50   [A12] Quest expiry after the time limit
+      -> SKIP: needs a 5 minute wait; set E2E_SLOW=1 to include it
+
+== Economics and observations ==
+16:01:50   [A13] After everything above the books still balance and the contract is solvent
+16:01:54       -> PASS: deposited 23500000000000000, pool 14020000000000000, reserved 0, paid out 9480000000000000 (4.2s)
+16:01:54   [O01] Social-engineering text without trigger phrases: what do the judges do?
+16:04:27       -> OBSERVED: 1 resolve attempt(s) failed (The transaction failed on-chain (leader SUCCESS/return; votes {"idle":2,"disagree":3}).); a later attempt succeeded; status FAILED, (152.7s)
+16:04:27   [P01] Which read argument lengths does the node accept?
+16:04:36       -> OBSERVED: 100 chars: answered ""; 200 chars: answered ""; 300 chars: refused by the node (local fallback used); 600 chars: refused by the node (local fallback used); 1000 (9.7s)
+16:04:36   [O02] Can a long action (about 600 characters) be submitted on-chain?
+16:05:26       -> OBSERVED: long submit accepted; quest #5 was SUBMITTED afterwards (49.3s)
+16:05:26   [A14] Final accounting after all scenarios
+16:05:33       -> PASS: deposited 25500000000000000, pool 16020000000000000, reserved 0, paid out 9480000000000000 (7.3s)
