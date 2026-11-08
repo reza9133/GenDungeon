@@ -3,7 +3,7 @@ import { genToWei, weiToGen, toBigInt, toBool, shortAddress, bpsToPercent, forma
 import { field, normalizeConfig, normalizeQuest, normalizeStats, asList } from "../lib/normalize";
 import { LiveGame, extractRevertReason, isGatewayHiccup, isPayloadRejected, isQuorumCancellation, isRateLimited, receiptFailed } from "../lib/contract";
 import { isSuccess, overallScore, rewardFor, rankIndex, nextRankAt, rankProgress, localActionProblem } from "../lib/rules";
-import { isAddress, resolveConfig } from "../lib/env";
+import { DEPLOYED_V2_ADDRESS, isAddress, resolveConfig } from "../lib/env";
 
 describe("format", () => {
   it("round-trips GEN amounts", () => {
@@ -278,16 +278,34 @@ describe("env", () => {
     expect(isAddress("0x123")).toBe(false);
     expect(isAddress(null)).toBe(false);
   });
-  it("falls back to demo mode when nothing is configured", () => {
+  it("opens the deployed v2 contract when nothing is configured", () => {
     const saved = process.env.VITE_CONTRACT_ADDRESS;
     delete process.env.VITE_CONTRACT_ADDRESS;
     delete process.env.GENDUNGEON_ADDRESS;
-    expect(resolveConfig().mode).toBe("demo");
+    expect(resolveConfig().mode).toBe("live");
+    expect(resolveConfig().address).toBe(DEPLOYED_V2_ADDRESS);
     process.env.VITE_CONTRACT_ADDRESS = "0xc49d63f60e651700777fA35d0F0aF05AF5AeA928";
     expect(resolveConfig().mode).toBe("live");
+    expect(resolveConfig().address).toBe("0xc49d63f60e651700777fA35d0F0aF05AF5AeA928");
     process.env.VITE_CONTRACT_ADDRESS = "not-an-address";
-    expect(resolveConfig().mode).toBe("demo");
+    expect(resolveConfig().mode).toBe("live");
+    expect(resolveConfig().address).toBe(DEPLOYED_V2_ADDRESS);
     if (saved) process.env.VITE_CONTRACT_ADDRESS = saved;
     else delete process.env.VITE_CONTRACT_ADDRESS;
+  });
+  it("enters demo mode only when ?demo=1 is in the address", () => {
+    const g = globalThis as { window?: unknown };
+    g.window = { location: { search: "?demo=1", hash: "" } };
+    try {
+      const config = resolveConfig();
+      expect(config.mode).toBe("demo");
+      expect(config.address).toBe(null);
+      g.window = { location: { search: "", hash: "#/play?demo=1" } };
+      expect(resolveConfig().mode).toBe("demo");
+      g.window = { location: { search: "?demo=0", hash: "" } };
+      expect(resolveConfig().mode).toBe("live");
+    } finally {
+      delete g.window;
+    }
   });
 });
