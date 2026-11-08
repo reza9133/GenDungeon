@@ -4,6 +4,18 @@
 
 Fixes from the first live run on Studio. The contract is unchanged.
 
+- Deployed: the v2 contract is live on GenLayer Studio at `0xF7eb3Aa417c155814EB44247A1308EB23Fc02805`; the live end-to-end run against it passed (27 passed,
+  0 failed, 1 skipped, 3 observed; `reports/LATEST-live.md`). The deployed source is byte-identical to
+  `contracts/GenDungeon.py`.
+- Changed: the app's legacy banner points at the v2 deployment (`DEPLOYED_V2_ADDRESS`); the Codex and the review screen
+  say that a judgment on which the validators cannot agree records nothing and can be repeated.
+- Added: `deployment.test.ts` keeps the address constant in step with the README, MILESTONE, CHANGELOG and `.env.example`.
+- Removed: `tests/test_resolve_and_claim.py`, a leftover of the v1 contract (called `start_quest()` without a tier and
+  mocked the v1 judge reply). Its scenarios are covered by the v2 suite.
+- Fixed: `scripts/mutation_check.py` now runs the suite on the unmodified contract first and stops if it fails; before,
+  a failing suite would have "killed" every mutant.
+- Fixed: documentation counts. There are 81 TypeScript tests, and a full live run has 31 checks.
+
 - Fixed: a reverted call was reported as accepted. Studio records the refusal on the leader receipt, not in
   `txExecutionResultName`; `receiptFailed` now reads `execution_result` and `result.status`, and the revert reason is
   taken from `result.payload`.
@@ -93,8 +105,8 @@ the app opens it in a read-only legacy mode.
 ### Not done in this release
 
 - The live end-to-end suite and the two GitHub workflows have not been executed on a real network or on GitHub; the
-  first live run produces the first on-chain evidence.
-- No v2 address is recorded in this repository.
+  first live run produces the first on-chain evidence. (The live suite has since run on Studio: see Unreleased.)
+- No v2 address is recorded in this repository. (Done since: see Unreleased.)
 
 ## 1.0.0
 

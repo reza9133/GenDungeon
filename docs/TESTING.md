@@ -6,7 +6,7 @@ Four layers, from the contract outward. Each layer exists because the one below 
 |---|---|---|---|
 | Contract tests | `tests/` (7 files, 121 test functions, 276 cases) | `npm run test:contract` | The contract's rules, run in GenVM's direct mode with the LLM mocked |
 | Mutation testing | `scripts/mutation_check.py` | `npm run mutation` | The contract tests notice 14 deliberately introduced bugs |
-| App and harness tests | `src/__tests__/`, `e2e/live/*.test.ts` (68 cases) | `npm test` | Client formulas match the contract, the in-memory model behaves, the end-to-end suites can fail |
+| App and harness tests | `src/__tests__/`, `e2e/live/*.test.ts` (81 cases) | `npm test` | Client formulas match the contract, the in-memory model behaves, the end-to-end suites can fail |
 | Live end-to-end | `e2e/live/` | `npm run e2e:live` | The same behaviour on a real GenLayer network ([E2E.md](E2E.md)) |
 
 ## 1. Contract tests
@@ -44,7 +44,8 @@ pool used to leave the player holding a quest that could never be claimed.
 
 Passing tests only show the code does what the tests expect. A mutation run shows whether the tests would **notice** if
 the code were wrong: it copies the contract, applies one small deliberate bug, runs the whole suite and requires it to
-fail. A mutant that survives is a hole in the tests.
+fail. A mutant that survives is a hole in the tests. The script first runs the suite on the unmodified contract and stops
+if that fails, because a suite that always fails would "kill" every mutant.
 
 ```
 npm run mutation          # about one pytest run per mutant
@@ -79,6 +80,8 @@ All 14 are killed.
   simulation cannot drift to messages the real contract never sends.
 - `lib.test.ts` covers formatting, normalisation of wire data (plain objects, Maps, camelCase), revert-reason
   extraction from nested receipts, the client-side rules and environment resolution.
+- `deployment.test.ts` checks that the deployed-address constant is valid and appears in the README, MILESTONE, CHANGELOG
+  and `.env.example`.
 - `e2e/live/dry.test.ts` is explained in the next section.
 
 ## 4. Do the end-to-end suites have teeth?

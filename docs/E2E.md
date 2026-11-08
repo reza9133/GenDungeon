@@ -22,7 +22,8 @@ report you can commit as evidence.
 > the node, and `resolve_quest` sometimes fails for infrastructure reasons (validators cancelled after a quorum), so the suite
 > retries it.
 >
-> Treat the next live run as the first real test of those fixes.
+> The live run recorded in `reports/` is that test: it passed (27 passed, 0 failed, 1 skipped, 3 observed) against
+> `0xF7eb3Aa417c155814EB44247A1308EB23Fc02805`.
 
 ## Run it in a GitHub Codespace
 
@@ -170,4 +171,4 @@ passed, `1` a check failed or the run was interrupted, `2` the network was unrea
 | `P01` shows long lengths refused | The node rejects long read arguments. Reads fall back to the local rules; check `O02` to see whether long writes work. |
 
 A full run makes dozens of transactions and several of them involve LLM consensus. The first live run took about
-eight minutes while most checks failed early; with request spacing a complete run takes noticeably longer.
+eight minutes while most checks failed early; the passing run recorded in `reports/` took about 29 minutes.

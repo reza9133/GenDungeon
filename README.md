@@ -12,6 +12,7 @@ or state is ordinary deterministic code that every validator re-derives.
 
 - Contract: [`contracts/GenDungeon.py`](contracts/GenDungeon.py), version 2.0.0
 - Web app: Vite, React, Tailwind, three.js, [`genlayer-js`](https://www.npmjs.com/package/genlayer-js)
+- Current deployment (v2) on GenLayer Studio: `0xF7eb3Aa417c155814EB44247A1308EB23Fc02805`, verified by the live end-to-end run in [reports/LATEST-live.md](reports/LATEST-live.md)
 - First release (v1) on GenLayer Studio: `0xc49d63f60e651700777fA35d0F0aF05AF5AeA928` (the app reads it in legacy mode)
 
 ## What is new in v2
@@ -28,7 +29,7 @@ or state is ordinary deterministic code that every validator re-derives.
 | Operations | Owner could change fees. | Payout cap, quest expiry, pause switch, two-step ownership transfer. |
 | Observability | Getters for config, quests, stats, history and the open feed. | Treasury view with a books-balance invariant and a solvency check, quote and dry-run views, events. |
 | Frontend | One page with panels and a transaction overlay. | Seven pages, a three-dimensional hero, a demo mode, self-hosted fonts, a lazy-loaded live runtime. |
-| Verification | 5 tests. | 276 contract tests, mutation testing, 52 TypeScript tests, an accessibility audit and a live end-to-end suite with adversarial scenarios. |
+| Verification | 5 tests. | 276 contract tests, mutation testing, 81 TypeScript tests, an accessibility audit and a live end-to-end suite with adversarial scenarios that has passed on GenLayer Studio. |
 
 The full change list is in [CHANGELOG.md](CHANGELOG.md); the reasoning is in [docs/](docs/).
 
@@ -47,11 +48,11 @@ screen without a wallet.
 
 ```bash
 cp .env.example .env
-# set VITE_CONTRACT_ADDRESS=0x...   (a GenDungeon v2 deployment)
+# set VITE_CONTRACT_ADDRESS=0xF7eb3Aa417c155814EB44247A1308EB23Fc02805   (the v2 deployment above)
 npm run dev
 ```
 
-Or open the app with `?contract=0x...` in the address. The app accepts a MetaMask account or creates a burner account
+Or open the app with `?contract=0xF7eb3Aa417c155814EB44247A1308EB23Fc02805` in the address. The app accepts a MetaMask account or creates a burner account
 in the browser. Reads and writes go through `genlayer-js` to GenLayer Studio.
 
 ### Deploy your own
@@ -81,7 +82,7 @@ npm run e2e:live:quick
 pip install -r requirements-dev.txt
 npm run test:contract     # 276 contract tests (GenVM direct mode, LLM mocked)
 npm run mutation          # 14 deliberate contract bugs, every one must be caught
-npm run check             # typecheck, 52 TypeScript tests, production build
+npm run check             # typecheck, 81 TypeScript tests, production build
 npm run e2e:dry           # all end-to-end scenarios against the in-memory model
 npm run e2e:live          # the same scenarios against a freshly deployed contract on GenLayer
 npm run e2e:commit        # commit the newest live report (refuses anything that is not a real run)

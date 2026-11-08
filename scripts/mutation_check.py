@@ -67,6 +67,17 @@ def main() -> int:
     keep_going = "--keep-going" in sys.argv
     original = SOURCE.read_text(encoding="utf-8")
     survivors = []
+    # A suite that already fails on the unmodified contract would "kill" every mutant, so check that first.
+    base_env = {k: v for k, v in os.environ.items() if k != "GENDUNGEON_CONTRACT"}
+    baseline = subprocess.run(
+        [sys.executable, "-m", "pytest", "-x", "-q", "-p", "no:cacheprovider", str(ROOT / "tests")],
+        cwd=ROOT, env=base_env, capture_output=True, text=True,
+    )
+    if baseline.returncode != 0:
+        print("The test suite fails on the unmodified contract, so a failing run proves nothing about a mutant.")
+        print(baseline.stdout[-1500:])
+        return 2
+    print("[baseline] the suite passes on the unmodified contract")
     for name, old, new in MUTANTS:
         if original.count(old) != 1:
             print(f"[skip] {name}: pattern matched {original.count(old)} times")
