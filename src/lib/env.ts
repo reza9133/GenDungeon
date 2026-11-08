@@ -56,11 +56,11 @@ export interface AppConfig {
 }
 
 /**
- * Picks live or demo mode.
- *   ?demo=1                   always demo
+ * Picks live or demo mode. Demo mode is only ever entered on request.
+ *   ?demo=1                   demo (the only way into demo mode)
  *   ?contract=0x...           live, against that contract
  *   VITE_CONTRACT_ADDRESS     live, against the configured deployment
- *   (nothing configured)      demo
+ *   (nothing configured)      live, against DEPLOYED_V2_ADDRESS
  */
 export function resolveConfig(): AppConfig {
   if (queryParam("demo") === "1") {
@@ -75,8 +75,10 @@ export function resolveConfig(): AppConfig {
     return { mode: "live", address: fromEnv, reason: "Contract from VITE_CONTRACT_ADDRESS" };
   }
   return {
-    mode: "demo",
-    address: null,
-    reason: "No contract address is configured, so the app runs against a local simulation",
+    mode: "live",
+    address: DEPLOYED_V2_ADDRESS,
+    reason: fromEnv
+      ? "VITE_CONTRACT_ADDRESS is not a valid address, so the default v2 deployment is used"
+      : "Default v2 deployment",
   };
 }
