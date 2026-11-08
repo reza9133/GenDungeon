@@ -113,8 +113,8 @@ against either implementation. That is also how the end-to-end suite is checked 
 
 ### Modes
 
-`resolveConfig()` picks the mode: `?demo=1` forces demo, `?contract=0x…` or `VITE_CONTRACT_ADDRESS` selects a live
-deployment, and with neither the app runs in demo mode. A contract that does not answer `get_version()` with `2.x` is
+`resolveConfig()` picks the mode: `?demo=1` is the only way into demo mode, `?contract=0x…` or `VITE_CONTRACT_ADDRESS`
+selects a live deployment, and with neither the app opens on `DEPLOYED_V2_ADDRESS`. A contract that does not answer `get_version()` with `2.x` is
 shown in a read-only legacy banner instead of breaking the UI.
 
 ### Why `genlayer-js` is lazy
