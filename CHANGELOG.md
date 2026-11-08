@@ -9,12 +9,15 @@ Fixes from the first live run on Studio. The contract is unchanged.
   `contracts/GenDungeon.py`.
 - Changed: the app's legacy banner points at the v2 deployment (`DEPLOYED_V2_ADDRESS`); the Codex and the review screen
   say that a judgment on which the validators cannot agree records nothing and can be repeated.
+- Changed: with no address configured the app now opens on the deployed v2 contract instead of demo mode, so a hosted build
+  needs no environment variable. Demo mode is entered only with `?demo=1`. An invalid `VITE_CONTRACT_ADDRESS` falls back to the
+  default. `lib.test.ts` was updated and a test for `?demo=1` added.
 - Added: `deployment.test.ts` keeps the address constant in step with the README, MILESTONE, CHANGELOG and `.env.example`.
 - Removed: `tests/test_resolve_and_claim.py`, a leftover of the v1 contract (called `start_quest()` without a tier and
   mocked the v1 judge reply). Its scenarios are covered by the v2 suite.
 - Fixed: `scripts/mutation_check.py` now runs the suite on the unmodified contract first and stops if it fails; before,
   a failing suite would have "killed" every mutant.
-- Fixed: documentation counts. There are 81 TypeScript tests, and a full live run has 31 checks.
+- Fixed: documentation counts. There are 82 TypeScript tests, and a full live run has 31 checks.
 
 - Fixed: a reverted call was reported as accepted. Studio records the refusal on the leader receipt, not in
   `txExecutionResultName`; `receiptFailed` now reads `execution_result` and `result.status`, and the revert reason is

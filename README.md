@@ -29,7 +29,7 @@ or state is ordinary deterministic code that every validator re-derives.
 | Operations | Owner could change fees. | Payout cap, quest expiry, pause switch, two-step ownership transfer. |
 | Observability | Getters for config, quests, stats, history and the open feed. | Treasury view with a books-balance invariant and a solvency check, quote and dry-run views, events. |
 | Frontend | One page with panels and a transaction overlay. | Seven pages, a three-dimensional hero, a demo mode, self-hosted fonts, a lazy-loaded live runtime. |
-| Verification | 5 tests. | 276 contract tests, mutation testing, 81 TypeScript tests, an accessibility audit and a live end-to-end suite with adversarial scenarios that has passed on GenLayer Studio. |
+| Verification | 5 tests. | 276 contract tests, mutation testing, 82 TypeScript tests, an accessibility audit and a live end-to-end suite with adversarial scenarios that has passed on GenLayer Studio. |
 
 The full change list is in [CHANGELOG.md](CHANGELOG.md); the reasoning is in [docs/](docs/).
 
@@ -40,19 +40,20 @@ npm ci
 npm run dev          # http://localhost:5173
 ```
 
-With no contract address configured the app runs in **demo mode**: an in-memory model of the contract, with the same
-rules, the same messages and a deterministic stand-in for the judges. Nothing is sent anywhere. Use it to see every
-screen without a wallet.
+By default the app opens on the deployed v2 contract (`0xF7eb3Aa417c155814EB44247A1308EB23Fc02805`, `DEPLOYED_V2_ADDRESS` in `src/lib/env.ts`), so a
+hosted build needs no environment variable. Add `?demo=1` to the address for **demo mode**: an in-memory model of the
+contract, with the same rules, the same messages and a deterministic stand-in for the judges. Nothing is sent anywhere.
+Use it to see every screen without a wallet.
 
-### Connect to a deployed contract
+### Connect to another contract
 
 ```bash
 cp .env.example .env
-# set VITE_CONTRACT_ADDRESS=0xF7eb3Aa417c155814EB44247A1308EB23Fc02805   (the v2 deployment above)
+# set VITE_CONTRACT_ADDRESS=0x...   (any GenDungeon v2 deployment; empty keeps the default)
 npm run dev
 ```
 
-Or open the app with `?contract=0xF7eb3Aa417c155814EB44247A1308EB23Fc02805` in the address. The app accepts a MetaMask account or creates a burner account
+Or open the app with `?contract=0x...` in the address. The app accepts a MetaMask account or creates a burner account
 in the browser. Reads and writes go through `genlayer-js` to GenLayer Studio.
 
 ### Deploy your own
@@ -82,7 +83,7 @@ npm run e2e:live:quick
 pip install -r requirements-dev.txt
 npm run test:contract     # 276 contract tests (GenVM direct mode, LLM mocked)
 npm run mutation          # 14 deliberate contract bugs, every one must be caught
-npm run check             # typecheck, 81 TypeScript tests, production build
+npm run check             # typecheck, 82 TypeScript tests, production build
 npm run e2e:dry           # all end-to-end scenarios against the in-memory model
 npm run e2e:live          # the same scenarios against a freshly deployed contract on GenLayer
 npm run e2e:commit        # commit the newest live report (refuses anything that is not a real run)
