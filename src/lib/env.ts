@@ -6,6 +6,9 @@
 /** The v1 deployment that shipped with the first release (read-only legacy). */
 export const LEGACY_V1_ADDRESS = "0xc49d63f60e651700777fA35d0F0aF05AF5AeA928";
 
+/** The v2 deployment on GenLayer Studio that the live end-to-end run verified (reports/LATEST-live.md). */
+export const DEPLOYED_V2_ADDRESS = "0xF7eb3Aa417c155814EB44247A1308EB23Fc02805";
+
 export function readEnv(key: string): string | undefined {
   try {
     const viteEnv = (import.meta as unknown as { env?: Record<string, string | undefined> }).env;

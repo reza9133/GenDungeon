@@ -76,7 +76,7 @@ export default function Codex() {
             ["Leader proposes", "Runs the judge prompt and returns three scores and a tamper flag."],
             ["Validators re-judge", "Each one asks its own model the same question and compares."],
             ["Equivalence rule", `Same tamper flag, same derived verdict, every score within 15 points.`],
-            ["Majority accepts", "Only then is the verdict written. A disagreement rotates the leader and tries again."],
+            ["Majority accepts", "Only then is the verdict written. A disagreement can rotate the leader; if no result wins a majority, nothing is recorded and the call can simply be repeated."],
           ].map(([t, d], i) => (
             <li key={t} className="panel !p-4">
               <span className="num text-2xl text-ember-500/80">{i + 1}</span>

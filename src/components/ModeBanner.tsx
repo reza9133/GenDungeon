@@ -1,5 +1,5 @@
 import { useSession, useSnapshot } from "../state/session";
-import { LEGACY_V1_ADDRESS } from "../lib/env";
+import { DEPLOYED_V2_ADDRESS, LEGACY_V1_ADDRESS } from "../lib/env";
 
 export default function ModeBanner() {
   const { config } = useSession();
@@ -10,11 +10,21 @@ export default function ModeBanner() {
 
   if (snap.legacy) {
     tone = "border-oxblood-500/50 bg-oxblood-500/10 text-oxblood-400";
-    body = (
+    const isDeployedV2 = config.address?.toLowerCase() === DEPLOYED_V2_ADDRESS.toLowerCase();
+    body = isDeployedV2 ? (
+      <>
+        <strong>Contract not readable.</strong> The v2 contract at {config.address} did not answer get_version() just now. The
+        network may be busy; the app keeps retrying.
+      </>
+    ) : (
       <>
         <strong>Legacy contract.</strong> The contract at {config.address} does not expose the v2 interface
-        {config.address?.toLowerCase() === LEGACY_V1_ADDRESS.toLowerCase() ? " (this is the original v1 deployment)" : ""}. Deploy
-        contracts/GenDungeon.py and point VITE_CONTRACT_ADDRESS at it, or add ?demo=1 to explore the simulation.
+        {config.address?.toLowerCase() === LEGACY_V1_ADDRESS.toLowerCase() ? " (this is the original v1 deployment)" : ""}. The
+        current v2 deployment is {DEPLOYED_V2_ADDRESS}:{" "}
+        <a className="underline" href={`?contract=${DEPLOYED_V2_ADDRESS}`}>
+          open it
+        </a>
+        , or add ?demo=1 to explore the simulation.
       </>
     );
   } else if (config.mode === "demo") {

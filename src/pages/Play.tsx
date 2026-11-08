@@ -4,6 +4,7 @@ import ScoreBars from "../components/ScoreBars";
 import TierDoor from "../components/TierDoor";
 import { Empty, PageHeading, Progress, Skeleton } from "../components/Shared";
 import { formatDuration, weiToGen } from "../lib/format";
+import { DEPLOYED_V2_ADDRESS } from "../lib/env";
 import {
   MAX_ACTION_CHARS,
   TIERS,
@@ -297,7 +298,7 @@ function ReviewScroll({ quest }: { quest: QuestData }) {
       </blockquote>
       <p className="mt-5 text-sm leading-relaxed text-ink/75">
         Your action is sealed. Calling for judgement asks every validator to score it independently; the verdict is recorded only if
-        enough of them agree. Anyone can make this call, and the outcome depends only on what is stored on-chain.
+        enough of them agree. If they cannot, nothing is recorded and you can simply call again. Anyone can make this call, and the outcome depends only on what is stored on-chain.
       </p>
       <button
         type="button"
@@ -382,7 +383,7 @@ export default function Play() {
   const main = useMemo(() => {
     if (!account) return <ConnectPanel />;
     if (snap.phase === "loading" && !snap.config) return <Skeleton className="h-96" />;
-    if (snap.legacy) return <Empty title="This deployment is not the v2 contract">Point the app at a v2 deployment, or add ?demo=1 to the address.</Empty>;
+    if (snap.legacy) return <Empty title="This deployment is not the v2 contract">Point the app at a v2 deployment (the current one is {DEPLOYED_V2_ADDRESS}), or add ?demo=1 to the address.</Empty>;
     if (quest?.status === QuestStatus.ACTIVE) return <ActionScroll quest={quest} />;
     if (quest?.status === QuestStatus.SUBMITTED) return <ReviewScroll quest={quest} />;
     if (quest?.status === QuestStatus.SUCCESS) return <VerdictScroll quest={quest} />;
