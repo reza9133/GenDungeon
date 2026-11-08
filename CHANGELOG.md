@@ -15,6 +15,9 @@ Fixes from the first live run on Studio. The contract is unchanged.
 - Added: `deployment.test.ts` keeps the address constant in step with the README, MILESTONE, CHANGELOG and `.env.example`.
 - Removed: `tests/test_resolve_and_claim.py`, a leftover of the v1 contract (called `start_quest()` without a tier and
   mocked the v1 judge reply). Its scenarios are covered by the v2 suite.
+- Removed: six unused files left over from v1 (`ActiveQuestsFeed`, `AdminPanel`, `LedgerRail`, `ManuscriptCard`,
+  `QuestHistory` and `hooks/useGameData`). Nothing imported them, but they import names the v2 client does not export, so
+  `tsc --noEmit` and therefore `npm run build` failed (Cloudflare Pages build log, 2026-11-08).
 - Fixed: `scripts/mutation_check.py` now runs the suite on the unmodified contract first and stops if it fails; before,
   a failing suite would have "killed" every mutant.
 - Fixed: documentation counts. There are 82 TypeScript tests, and a full live run has 31 checks.
